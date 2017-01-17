@@ -4,6 +4,8 @@
  * @package kneu/api
  */
 
+namespace Kneu;
+
 class CurlException extends \Exception
 {
     /**
