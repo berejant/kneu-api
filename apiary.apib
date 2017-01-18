@@ -1,80 +1,345 @@
 FORMAT: 1A
-HOST: http://polls.apiblueprint.org/
+HOST: https://auth.kneu.edu.ua/api/
 
-# kneu
+# KNEU OAuth 2.0 AND RESTful API
 
-Polls is a simple API allowing consumers to view polls and vote in them.
+Документація з використання веб-сервісів КНЕУ:
+ * Протокол OAuth 2.0 - забезпечує єдиний інтерфейсу авторизації користувачів на веб-ресурсах КНЕУ (через веб-сайт університету).
+ * RESTful API - надає для інших програмних продуктів КНЕУ інформацію стосовно структури університету: факультети, кафедри, викладачі, спеціальності, студенти, користувачі.
 
-## Questions Collection [/questions]
+Для полегшення реалізації інтеграції із веб-сервісами було розроблено наступні додатки:
+ * [PHP client for KNEU RESTful API Service](https://github.com/berejant/kneu-api) - PHP-бібліотека для роботи з КНЕУ RESTful API та OAuth 2.0. Документація розміщенна в README.md в Github-репозиторії.
+ * [KNEU Laravel Socialite](https://github.com/berejant/kneu-laravel-socialite-provider) - пакет, який реалізує авторизацію через сервер КНЕУ в Laravel-додатках.
 
-### List All Questions [GET]
 
-+ Response 200 (application/json)
-
-        [
-            {
-                "question": "Favourite programming language?",
-                "published_at": "2015-08-05T08:40:51.620Z",
-                "choices": [
-                    {
-                        "choice": "Swift",
-                        "votes": 2048
-                    }, {
-                        "choice": "Python",
-                        "votes": 1024
-                    }, {
-                        "choice": "Objective-C",
-                        "votes": 512
-                    }, {
-                        "choice": "Ruby",
-                        "votes": 256
-                    }
-                ]
-            }
-        ]
-
-### Create a New Question [POST]
-
-You may create your own question using this action. It takes a JSON
-object containing a question and a collection of answers in the
-form of choices.
+# KNEU RESTful API [/]
 
 + Request (application/json)
-
-        {
-            "question": "Favourite programming language?",
-            "choices": [
-                "Swift",
-                "Python",
-                "Objective-C",
-                "Ruby"
-            ]
-        }
-
-+ Response 201 (application/json)
-
     + Headers
 
-            Location: /questions/2
+        Authorization: Bearer {access_token}
+
+## Факультети [/faculty]
+
+### List - перелік факультетів [GET /faculty{?offset,limit}]
+Дозволяє отримати перелік всіх факультетів
+
+
++ Parameters
+    + offset (number, optional) - зсув вибірки від початку. Аналог SQL LIMIT [offset], [limit];
+        + Default: 0
+    + limit (number, optional) - кількість об'єктів у видачі (MAX = 500). Аналог SQL LIMIT [offset], [limit];
+        + Default: 500
+
++ Request
+    + Headers
+
+            Authorization: Bearer {access_token}
+
++ Response 200 (application/json)
+    + Headers
+
+            Content-Range: items [startIndex]-[endIndex]/[totalCount]
 
     + Body
 
+            [
+                {
+                    "id": 1,
+                    "name": "Економіки та управління"
+                },
+                ...
+            ]
+
+
+### Item - факультет [GET /faculty/{faculty_id}]
+Дозволяє отримати інформацію про факультети за його ідентифікатором
+
++ Parameters
+    + faculty_id (number, required) - Ідентифікатор факультету
+
++ Request
+    + Headers
+
+            Authorization: Bearer {access_token}
+
++ Response 200 (application/json)
+    + Body
+
             {
-                "question": "Favourite programming language?",
-                "published_at": "2015-08-05T08:40:51.620Z",
-                "choices": [
-                    {
-                        "choice": "Swift",
-                        "votes": 0
-                    }, {
-                        "choice": "Python",
-                        "votes": 0
-                    }, {
-                        "choice": "Objective-C",
-                        "votes": 0
-                    }, {
-                        "choice": "Ruby",
-                        "votes": 0
-                    }
-                ]
+                "id": 1,
+                "name": "Економіки та управління"
+            }
+
+
+## Кафедри [/department]
+
+### List - перелік кафедр [GET /department{?offset,limit}]
+Дозволяє отримати перелік всіх кафедр
+
+
++ Parameters
+    + offset (number, optional) - зсув вибірки від початку. Аналог SQL LIMIT [offset], [limit];
+        + Default: 0
+    + limit (number, optional) - кількість об'єктів у видачі (MAX = 500). Аналог SQL LIMIT [offset], [limit];
+        + Default: 500
+
++ Request
+    + Headers
+
+            Authorization: Bearer {access_token}
+
++ Response 200 (application/json)
+    + Headers
+
+            Content-Range: items [startIndex]-[endIndex]/[totalCount]
+
+    + Body
+
+            [
+                {
+                    "id": 1,
+                    "faculty_id": 6,
+                    "name": "Політичної історії"
+                },
+                ...
+            ]
+
+
+### Item - кафедра [GET /department/{department_id}]
+Дозволяє отримати інформацію про факультети за його ідентифікатором
+
++ Parameters
+    + department_id (number, required) - Ідентифікатор кафедри
+
++ Request
+    + Headers
+
+            Authorization: Bearer {access_token}
+
++ Response 200 (application/json)
+    + Body
+
+            {
+              "id": 1,
+              "faculty_id": 6,
+              "name": "Політичної історії"
+            }
+
+
+## Викладачі [/teacher]
+
+### List - перелік викладачів [GET /teacher{?offset,limit}]
+Дозволяє отримати перелік всіх викладачів
+
+
++ Parameters
+    + offset (number, optional) - зсув вибірки від початку. Аналог SQL LIMIT [offset], [limit];
+        + Default: 0
+    + limit (number, optional) - кількість об'єктів у видачі (MAX = 500). Аналог SQL LIMIT [offset], [limit];
+        + Default: 500
+
++ Request
+    + Headers
+
+            Authorization: Bearer {access_token}
+
++ Response 200 (application/json)
+    + Headers
+
+            Content-Range: items [startIndex]-[endIndex]/[totalCount]
+
+    + Body
+
+            [
+                {
+                  "id": 1,
+                  "department_id": 1,
+                  "first_name": "Іван",
+                  "middle_name": "Іванович",
+                  "last_name": "Іванонов"
+                },
+                ...
+            ]
+
+
+### Item - викладач [GET /teacher/{teacher_id}]
+Дозволяє отримати інформацію про викладача за його ідентифікатором
+
++ Parameters
+    + teacher_id (number, required) - Ідентифікатор викладача
+
++ Request
+    + Headers
+
+            Authorization: Bearer {access_token}
+
++ Response 200 (application/json)
+    + Body
+
+            {
+              "id": 1,
+              "department_id": 1,
+              "first_name": "Іван",
+              "middle_name": "Іванович",
+              "last_name": "Іванонов"
+            }
+
+
+## Спеціальності [/specialty]
+
+### List - перелік спеціальностей [GET /specialty{?offset,limit}]
+Дозволяє отримати перелік всіх спеціальностей
+
+
++ Parameters
+    + offset (number, optional) - зсув вибірки від початку. Аналог SQL LIMIT [offset], [limit];
+        + Default: 0
+    + limit (number, optional) - кількість об'єктів у видачі (MAX = 500). Аналог SQL LIMIT [offset], [limit];
+        + Default: 500
+
++ Request
+    + Headers
+
+            Authorization: Bearer {access_token}
+
++ Response 200 (application/json)
+    + Headers
+
+            Content-Range: items [startIndex]-[endIndex]/[totalCount]
+
+    + Body
+
+            [
+                {
+                  "id": 1,
+                  "faculty_id": 9,
+                  "code": "6101",
+                  "name": "Комп’ютерні науки"
+                },
+                ...
+            ]
+
+
+### Item - спеціальність [GET /specialty/{specialty_id}]
+Дозволяє отримати інформацію про спеціальність за її ідентифікатором
+
++ Parameters
+    + specialty_id (number, required) - Ідентифікатор спеціальності
+
++ Request
+    + Headers
+
+            Authorization: Bearer {access_token}
+
++ Response 200 (application/json)
+    + Body
+
+            {
+              "id": 1,
+              "faculty_id": 9,
+              "code": "6101",
+              "name": "Комп’ютерні науки"
+            }
+
+
+## Академічна група [/group]
+
+### List - перелік академічних груп [GET /group{?offset,limit}]
+Дозволяє отримати перелік всіх академічних груп
+
++ Parameters
+    + offset (number, optional) - зсув вибірки від початку. Аналог SQL LIMIT [offset], [limit];
+        + Default: 0
+    + limit (number, optional) - кількість об'єктів у видачі (MAX = 500). Аналог SQL LIMIT [offset], [limit];
+        + Default: 500
+
++ Request
+    + Headers
+
+            Authorization: Bearer {access_token}
+
++ Response 200 (application/json)
+    + Headers
+
+            Content-Range: items [startIndex]-[endIndex]/[totalCount]
+
+    + Body
+
+            [
+                {
+                  "id": 432,
+                  "specialty_id": 28,
+                  "course": 4,
+                  "name": "ООА-401"
+                },
+                ...
+            ]
+
+
+### Item - академічна група [GET /group/{group_id}]
+Дозволяє отримати інформацію про академічну групу за її ідентифікатором
+
++ Parameters
+    + group_id (number, required) - Ідентифікатор академічної групи
+
++ Request
+    + Headers
+
+            Authorization: Bearer {access_token}
+
++ Response 200 (application/json)
+    + Body
+
+            {
+              "id": 432,
+              "name": "ООА-401",
+              "course": 4,
+              "specialty": {
+                "id": 28,
+                "code": "6509",
+                "name": "Облік і аудит"
+              },
+              "faculty": {
+                "id": 5,
+                "name": "Обліково-економічний"
+              }
+            }
+
+
+
+## Користувач [/user]
+
+### Поточний користувач [GET /user/me]
+Дозволяє отримати інформацію про поточного користувача, який був авторизований за допомогою OAuth та для якого сформано поточний access_token
+
++ Request
+    + Headers
+
+            Authorization: Bearer {access_token}
+
++ Response 200 (application/json)
+    + Body
+
+            {
+                "id": 999,
+                "email": "sample@exampla.com",
+                "last_name": "Іванов",
+                "first_name": "Іван",
+                "middle_name": "Іванович",
+
+                "type": "simple",
+
+                ...
+
+                "type": "student",
+                "student_id": 99999,
+                "group_id": 9999,
+                "sex": "male",
+
+                ...
+
+                "type": "teacher",
+                "teacher_id": 9999,
+                "department_id": 99,
             }
