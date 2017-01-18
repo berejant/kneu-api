@@ -1,8 +1,8 @@
-# PHP client for KNEU REST API Service
+# PHP client for KNEU RESTful API Service
 
-This PHP Library provide programmatic user-friendly interface to work with the KNEU REST API.
+This PHP Library provide programmatic user-friendly interface to work with the KNEU RESTful API and OAuth 2.0.
 
-Ця PHP-бібліотека забезпечує зручний програмний інтерфейс для роботи з КНЕУ REST API.
+Ця PHP-бібліотека забезпечує зручний програмний інтерфейс для роботи з КНЕУ RESTful API та протоколом OAuth 2.0.
 
 ## Встановлення
 
@@ -18,18 +18,18 @@ This PHP Library provide programmatic user-friendly interface to work with the K
 $api = new Kneu\Api;
 ```
 
-#### `public function __construct($accessToken = null)`
+#### `__construct($accessToken = null)`
 
  * **Parameters:** `$accessToken` — `string|null` — Токен для роботи з API.
  * **See also:** Api::setAccessToken(), Api::oauthToken(), Api::serverToken()
 
-### `public function setAccessToken($accessToken)`
+### `setAccessToken($accessToken)`
 
 Встановлює $accessToken
 
  * **Parameters:** `$accessToken` — `string`
 
-## `public function oauthToken($client_id, $client_secret, $code, $redirect_uri)`
+## `oauthToken($client_id, $client_secret, $code, $redirect_uri)`
 
 Завершити процедуру oauth - отримати access_token на основі отриманого від клієнта значення code.
 
@@ -49,7 +49,7 @@ $api = new Kneu\Api;
    * `Kneu\JsonException`
    * `Kneu\ApiException`
 
-## `public function serverToken($client_id, $client_secret)`
+## `serverToken($client_id, $client_secret)`
 
 Авторизація стороннього серверу для роботи з API (імпорту списку факультетів, кафедр, викладачів, академічних груп, спеціальностей).
 
@@ -62,7 +62,7 @@ $api = new Kneu\Api;
    * `Kneu\JsonException`
    * `Kneu\ApiException`
 
-## `public function request($method, array $params = array())`
+## `request($method, array $params = array())`
 
 Виклик довільного API-методу.
 
@@ -75,18 +75,18 @@ $api = new Kneu\Api;
    * `Kneu\JsonException`
    * `Kneu\ApiException`
 
-## `public function getFaculties(integer $offset = null, integer $limit = null)`
+## `getFaculties(integer $offset = null, integer $limit = null)`
 Отримати перелік факультетів
-## `public function getDepartments(integer $offset = null, integer $limit = null)`
+## `getDepartments(integer $offset = null, integer $limit = null)`
 Отримати перелік кафедр
 
-## `public function getTeachers(integer $offset = null, integer $limit = null)`
+## `getTeachers(integer $offset = null, integer $limit = null)`
 Отримати перелік викладачів
 
-## `public function getSpecialities(integer $offset = null, integer $limit = null)`
+## `getSpecialities(integer $offset = null, integer $limit = null)`
 Отримати перелік спеціальностей
 
-## `public function getGroups(integer $offset = null, integer $limit = null)`
+## `getGroups(integer $offset = null, integer $limit = null)`
 Отримати перелік академічних груп
 
  * **Parameters:**
@@ -98,22 +98,22 @@ $api = new Kneu\Api;
    * `Kneu\JsonException`
    * `Kneu\ApiException`
 
-## `public function getFaculty(integer $id)`
+## `getFaculty(integer $id)`
 Отримати факультет зі вказаним id
 
-## `public function getDepartment(integer $id)`
+## `getDepartment(integer $id)`
 Отримати кафедру зі вказаним id
 
-## `public function getTeacher(integer $id)`
+## `getTeacher(integer $id)`
 Отримати викладача зі вказаним id
 
-## `public function getSpeciality(integer $id)`
+## `getSpeciality(integer $id)`
 Отримати спеціальність зі вказаним id
 
-## `public function getGroup(integer $id)`
+## `getGroup(integer $id)`
 Отримати групу зі вказаним id
 
-## `public function getUser()`
+## `getUser()`
 
 Отримати інформацію про поточного користувача з поточним access_token.
 Інформація про користувача доступна лише після виклику oauthToken().
@@ -133,21 +133,19 @@ $api = new Kneu\Api;
    * **sex** - `null|enum("male", "female")` - Стать (чоловік/жінка), доступно лише для студентів
 
 
-## `public function getContentRange($key)`
+## `getContentRange($key)`
 
 Дозволяє отримати Meta-інформацію про загальну кількість об'єктів певної сутності (для переліку викладачів, спеціальностей, факультетів тощо).
-Інформація надається із заголовку Content-Range, тому може надати інформацію лише після виконання методу (запиту) на отримання переліку об'єктів певної сутності.
-Наприклад, цей метод доцільно викликати після виконання методів getTeachers(), getSpecialities() і т.д.
-Детальніше дивіться у прикладі коду нижче.
+Інформація надається із заголовку Content-Range, тому метод `getContentRange()` може надати інформацію лише після виконання методу (запиту) на отримання переліку об'єктів певної сутності.
+Наприклад, метод `getContentRange()` доцільно викликати після виконання методів `getTeachers()`, `getGroups()`, `getSpecialities()` тощо.
+Детальніше застосування методу `getContentRange()` подано в прикладі коду нижче (у розділі **Авторизація серверу та імпорт бази даних**).
 
  * **Parameters:** `$key` — `string` — enum("total", "start", "end")
    * **total** - загальна кількість об'єктів (total count from database)
    * **start** - початок зсуву даних починаючи під початку (від 0). Аналог SQL LIMIT [start], 100. Іншими словам - індексу першого об'єкту з останнього запиту в загальному переліку об'єктів.
    * **end** - кінець зсуву даних. [end] = [start] + [limit] - 1 за аналогією з SQL LIMIT [start], [limit]. Іншими словам - індексу останнього об'єкту з останнього запиту в загальному переліку об'єктів.
    * Якщо значення `$key` не задано, то метод поверне масив з ключами **start**, **end**, **total**.
-
  * **Returns:** `array|integer|null`
-
 
 ## Приклад використання
 
