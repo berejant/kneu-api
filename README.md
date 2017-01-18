@@ -37,7 +37,7 @@ $api = new Kneu\Api;
    * `$client_id` — `int` — ID додатку, який надається адміністратором
    * `$client_secret` — `string` — Секрет додатку, який надається адміністратором
    * `$code` — `string` — Код, отриманий з браузера користувача
-   * `$redirect_uri` — `string` — URL стороннього додатку (домену), на який була виконана переадресація з параметром token.
+   * `$redirect_uri` — `string` — URL стороннього додатку (домену), на який була виконана переадресація з параметром code.
  * **Returns:** `\stdClass` - містить властивості:
    * **access_token** - `string` - безпосередньо код access_token
    * **token_type** - `string` - "Bearer"
@@ -83,15 +83,15 @@ $api = new Kneu\Api;
 ## `getTeachers(integer $offset = null, integer $limit = null)`
 Отримати перелік викладачів
 
-## `getSpecialities(integer $offset = null, integer $limit = null)`
+## `getSpecialties(integer $offset = null, integer $limit = null)`
 Отримати перелік спеціальностей
 
 ## `getGroups(integer $offset = null, integer $limit = null)`
 Отримати перелік академічних груп
 
  * **Parameters:**
-   * `$offset` — `integer` — зсув вибірки від початку. Аналог LIMIT [offset], [limit];
-   * `$limit` — `integer` — кількість об'єктів у видачі (MAX = 500). Аналог LIMIT [offset], [limit];
+   * `$offset` — `integer` — зсув вибірки від початку. Аналог SQL LIMIT [offset], [limit];
+   * `$limit` — `integer` — кількість об'єктів у видачі (MAX = 500). Аналог SQL LIMIT [offset], [limit];
  * **Returns:** `array`
  * **Exceptions:**
    * `Kneu\CurlException`
@@ -107,7 +107,7 @@ $api = new Kneu\Api;
 ## `getTeacher(integer $id)`
 Отримати викладача зі вказаним id
 
-## `getSpeciality(integer $id)`
+## `getSpecialty(integer $id)`
 Отримати спеціальність зі вказаним id
 
 ## `getGroup(integer $id)`
@@ -238,7 +238,6 @@ if('student' == $user->type) {
       ["middle_name"] => string(8) "Іванович"
       ["last_name"] => string(6) "Іванов"
     }
-
     */
 
     $department = $api->getDepartment($user->department_id); // or $teacher->department_id

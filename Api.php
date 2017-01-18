@@ -8,12 +8,12 @@ namespace Kneu;
  * @method array getFaculties      (integer $offset = null, integer $limit = null)  Отримати масив факультетів
  * @method array getDepartments    (integer $offset = null, integer $limit = null)  Отримати масив кафедр
  * @method array getTeachers       (integer $offset = null, integer $limit = null)  Отримати масив викладачів
- * @method array getSpecialities   (integer $offset = null, integer $limit = null)  Отримати масив спеціальностей
+ * @method array getSpecialties    (integer $offset = null, integer $limit = null)  Отримати масив спеціальностей
  * @method array getGroups         (integer $offset = null, integer $limit = null)  Отримати масив груп
  * @method \stdClass getFaculty    (integer $id) Отримати факультет зі вказаним id
  * @method \stdClass getDepartment (integer $id) Отримати кафедру зі вказаним id
  * @method \stdClass getTeacher    (integer $id) Отримати викладача зі вказаним id
- * @method \stdClass getSpeciality (integer $id) Отримати спеціаліність зі вказаним id
+ * @method \stdClass getSpecialty  (integer $id) Отримати спеціаліність зі вказаним id
  * @method \stdClass getGroup      (integer $id) Отримати групу зі вказаним id
  */
 class Api
@@ -39,7 +39,7 @@ class Api
         'faculties' => 'faculty',
         'departments' => 'department',
         'teachers' => 'teacher',
-        'specialities' => 'speciality',
+        'specialties' => 'specialty',
         'groups' => 'group',
     ];
 
