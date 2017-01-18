@@ -156,7 +156,7 @@ require __DIR__ . '/vendor/autoload.php';
 $api = new Kneu\Api;
 
 $accessToken = $api->oauthToken(__CLIENT_ID__, __CLIENT_SECRET__, filter_input(INPUT_GET, 'code'), $redirect_uri);
-/**
+/*
     $redirect_uri - як правило це current url без параметрів code та scope.
     Якщо використаний фреймворк не дозволяє побудувати штатними засобами $redirect_uri,
     то його можна отримати наступним чином:
@@ -166,21 +166,21 @@ $accessToken = $api->oauthToken(__CLIENT_ID__, __CLIENT_SECRET__, filter_input(I
 
     $redirect_uri = 'http' . ($isSsl ? 's' : '') . '//' . $_SERVER['HTTP_HOST']
                   . rtrim(preg_replace('#(code|state)=.*?($|\&)#', '', $_SERVER['REQUEST_URI']), '?');
-**/
+*/
 
 var_dump($accessToken);
-/**
+/*
 object(stdClass) (4) {
   ["access_token"] => string(32) "63f02b799aea683bc045adadf5b4x429"
   ["token_type"] => string(6) "Bearer"
   ["expires_in"] => int(7200)
   ["user_id"] => int(999)
 }
-**/
+*/
 
 $user = $api->getUser();
 var_dump($user);
-/**
+/*
 object(stdClass) (9) {
   ["id"] => int(999)
   ["email"] => string(18) "sample@exampla.com"
@@ -204,13 +204,13 @@ object(stdClass) (9) {
   ["department_id"] => int(99)
 
 }
-**/
+*/
 
 if('student' == $user->type) {
     $group = $api->getGroup($user->group_id);
     var_dump($group);
 
-    /**
+    /*
     object(stdClass) (5) {
       ["id"] => int(999)
       ["name"] => string(10) "ЕЕЕ-999"
@@ -225,12 +225,12 @@ if('student' == $user->type) {
         ["name"] => string(63) "Інформаційних систем і технологій"
       }
     }
-    **/
+    */
 
 } elseif ('teacher' == $user->type) {
     $teacher = $api->getTeacher($user->teacher_id);
     var_dump($teacher);
-    /**
+    /*
     object(stdClass)#4 (5) {
       ["id"] => int(999)
       ["department_id"] => int(43)
@@ -239,17 +239,17 @@ if('student' == $user->type) {
       ["last_name"] => string(6) "Іванов"
     }
 
-    **/
+    */
 
     $department = $api->getDepartment($user->department_id); // or $teacher->department_id
     var_dump($department);
-    /**
+    /*
     object(stdClass) (3) {
       ["id"] => int(99)
       ["faculty_id"] => int(9)
       ["name"] => string(61) "Інформаційних систем в економіці"
     }
-    **/
+    */
 ```
 
 
