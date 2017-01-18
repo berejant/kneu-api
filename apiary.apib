@@ -1,80 +1,423 @@
 FORMAT: 1A
-HOST: http://polls.apiblueprint.org/
+HOST: https://auth.kneu.edu.ua/api/
 
-# kneu
+# KNEU OAuth 2.0 AND RESTful API
 
-Polls is a simple API allowing consumers to view polls and vote in them.
+Документація з використання веб-сервісів КНЕУ:
+ * Протокол OAuth 2.0 - забезпечує єдиний інтерфейс авторизації користувачів на веб-ресурсах КНЕУ (через веб-сайт університету).
+ * RESTful API - надає інформацію для інших програмних продуктів КНЕУ стосовно структури університету: факультети, кафедри, викладачі, спеціальності, студенти, користувачі.
 
-## Questions Collection [/questions]
+Для полегшення реалізації інтеграції із веб-сервісами було розроблено наступні додатки:
+ * [PHP client for KNEU RESTful API Service](https://github.com/berejant/kneu-api) - PHP-бібліотека для роботи з КНЕУ RESTful API та OAuth 2.0. Документація до бібліотеки розміщена в файлі README.md в Github-репозиторії.
+ * [KNEU Laravel Socialite](https://github.com/berejant/kneu-laravel-socialite-provider) - пакет, який реалізує авторизацію через сервер КНЕУ в Laravel-додатках.
 
-### List All Questions [GET]
+# OAuth 2.0
+Існує два типи авторизації:
+ * авторизація клієнта (користувача) через браузер. Дозволяє ідентифікувати конкретного користувача КНЕУ: студента, викладача, співробітника тощо.
+ * авторизація сервера стороннього додатку. Дозволяє отримати доступ до RESTful API без прив'язки до конкретного користувача.
+В обох випадках процедура авторизації закінчується отриманням `access_token` для доступу до RESTful API.
 
-+ Response 200 (application/json)
+Для роботи з OAuth 2.0 необхідно отримати для свого програмного додатки наступні реквізити доступу:
+ * **client_id** (`integer`) - ідентифікатор стороннього додатку (може передаватися публічно)
+ * **client_secret** (`char(32)`) - секретний код стороннього додатку для ідентифікації (має зберігатися в таємниці)
 
-        [
-            {
-                "question": "Favourite programming language?",
-                "published_at": "2015-08-05T08:40:51.620Z",
-                "choices": [
-                    {
-                        "choice": "Swift",
-                        "votes": 2048
-                    }, {
-                        "choice": "Python",
-                        "votes": 1024
-                    }, {
-                        "choice": "Objective-C",
-                        "votes": 512
-                    }, {
-                        "choice": "Ruby",
-                        "votes": 256
-                    }
-                ]
-            }
-        ]
+Вказані вище реквізити доступу надаються [Відділом мережевих технології Центру автоматизації управління університетом](https://kneu.edu.ua/ua/University_en/control_center/center_ayy/support_www/). Для цього необхідно звернутися до Відділу особисто або надіслати письмово вмотивовану заяву на отримання доступу. В заявці обов'язково необхідно вказати назву та призначення інформаційної системи та доменні імена.
 
-### Create a New Question [POST]
+## OAuth 2.0 авторизація клієнта
 
-You may create your own question using this action. It takes a JSON
-object containing a question and a collection of answers in the
-form of choices.
+Складається з чотирьох кроків:
 
-+ Request (application/json)
+ 1. Для початку процесу авторизації клієнта необхідно направити на адресу:  
+    > http://auth.kneu.edu.ua/oauth?`response_type`=code&`client_id`={CLIENT_ID}&`redirect_uri`={REDIRECT_URI}&`state`={STATE}
 
-        {
-            "question": "Favourite programming language?",
-            "choices": [
-                "Swift",
-                "Python",
-                "Objective-C",
-                "Ruby"
-            ]
-        }
+    де:
+     * `response_type` - `string` – тип відповіді, яку отримує сторонній ресурс. Доступне лише одне значення: **code**.  
+     * `client_id` - `integer`  – ідентифікатор стороннього додатку.  
+     * `redirect_uri` – `string` - адреса, на яку буде передано параметр `code`. Ця адреса повинна буде знаходиться **в межах домену**, вказаного при реєстрації стороннього ресурсу.  
+     * `state` – optional. Якщо вказано – значення цього параметру буде передано у `redirect_uri`.
+ 2. Користувачу буде запропоновано вести його логін та пароль. У випадку, якщо користувач раніше вже пройшов авторизацію на веб-сайті КНЕУ – його буде одразу переадресовано на `redirect_uri` без будь-яких затримок та додаткових діалогів. Також, замість логіну та паролю, користувач може авторизуватися за допомогою аккаунту в сторонньому сервісі або соціальній мережі (Google, Yandex, Facebook, Вконтакте, Mailru, Twitter тощо).
+ 3. Після успішної авторизації браузер користувача буде переадресовано за адресою `redirect_uri`, вказаної при відкритті діалогу. При цьому, для отримання доступу в GET-параметрах буде передано параметр code:
+    > `redirect_uri`?`code`={code}[&`scope`={scope}]
 
-+ Response 201 (application/json)
+    де:
+    * `code` - `string` - спеціальний код для отримання `access_token`. Може бути використано протягом двох хвилин.
+    * `scope` - `string` - optional. значення параметра scope, яке було передано на кроці 1.
+ 4. Отримання access_token. Для цього необхідно здійснити POST запит за адресою 
+    > https://auth.kneu.edu.ua/oauth/token
 
+    Headers:
+    - Content-Type: application/x-www-form-urlencoded
+    
+    POST-параметри:
+     * `client_id` - integer - ідентифікатор стороннього додатку;
+     * `client_secret` - string - секретний код стороннього додатку;
+     * `grant_type` - string - вказати значення "**authorization_code**";
+     * `code` - string - Код, який був переданий на `redirect_uri`;
+     * `redirect_uri` - string - безпосередньо адреса `redirect_uri`, на який було здійсненно переадресацію клієнта. 
+
+    Відповідь міститиме JSON:
+```json
+{
+  "access_token": "96931eb1ed29a47b4c38f97f7d49a8f6",
+  "token_type": "Bearer",
+  "expires_in": 7200,
+  "user_id": 999
+}
+```
+    Значення параметру `access_token` потрібно буде використати для роботи з RESTful API.
+
+## OAuth 2.0 авторизація сервера
+Для авторизація серверу стороннього додатку необхідно здійснити POST запит за адресою
+> https://auth.kneu.edu.ua/oauth/token
+
+Headers:
+- Content-Type: application/x-www-form-urlencoded
+
+POST-параметри:
+ * `client_id` - integer - ідентифікатор стороннього додатку;
+ * `client_secret` - string - секретний код стороннього додатку;
+ * `grant_type` - string - вказати значення "**client_credentials**".
+
+Відповідь міститиме JSON:
+```json
+{
+  "access_token": "96931eb1ed29a47b4c38f97f7d49a8f6",
+  "token_type": "Bearer",
+  "expires_in": 7200,
+}
+```
+    Значення параметру `access_token` потрібно буде використати для роботи з RESTful API.
+
+# KNEU RESTful API
+Для роботи з RESTful API необхідно володіти значенням `access_token`.
+Запити здійснюються методом GET за адресами:
+ * https://auth.kneu.edu.ua/api/[назва_сутності] - для отримання масиву наявних об'єктів вказаної сутності (Action list)
+ * https://auth.kneu.edu.ua/api/[назва_сутності]/[id] - для отримання конкретного об'єкта зі вказаним id  вказаної сутності (Action item)
+
+При виконанні запитів до RESTful API у заголовках необхідно передавати значення `access_token`:
+> Authorization: Bearer [access_token]
+
+## Факультети [/faculty]
+
+### List - перелік факультетів [GET /faculty{?offset,limit}]
+Дозволяє отримати перелік всіх факультетів
+
+
++ Parameters
+    + offset (number, optional) - зсув вибірки від початку. Аналог SQL LIMIT [offset], [limit];
+        + Default: 0
+    + limit (number, optional) - кількість об'єктів у видачі (MAX = 500). Аналог SQL LIMIT [offset], [limit];
+        + Default: 500
+
++ Request
     + Headers
 
-            Location: /questions/2
+            Authorization: Bearer {access_token}
+
++ Response 200 (application/json)
+    + Headers
+
+            Content-Range: items [startIndex]-[endIndex]/[totalCount]
 
     + Body
 
+            [
+                {
+                    "id": 1,
+                    "name": "Економіки та управління"
+                },
+                ...
+            ]
+
+
+### Item - факультет [GET /faculty/{faculty_id}]
+Дозволяє отримати інформацію про факультет за його ідентифікатором
+
++ Parameters
+    + faculty_id (number, required) - Ідентифікатор факультету
+
++ Request
+    + Headers
+
+            Authorization: Bearer {access_token}
+
++ Response 200 (application/json)
+    + Body
+
             {
-                "question": "Favourite programming language?",
-                "published_at": "2015-08-05T08:40:51.620Z",
-                "choices": [
-                    {
-                        "choice": "Swift",
-                        "votes": 0
-                    }, {
-                        "choice": "Python",
-                        "votes": 0
-                    }, {
-                        "choice": "Objective-C",
-                        "votes": 0
-                    }, {
-                        "choice": "Ruby",
-                        "votes": 0
-                    }
-                ]
+                "id": 1,
+                "name": "Економіки та управління"
+            }
+
+
+## Кафедри [/department]
+
+### List - перелік кафедр [GET /department{?offset,limit}]
+Дозволяє отримати перелік всіх кафедр
+
+
++ Parameters
+    + offset (number, optional) - зсув вибірки від початку. Аналог SQL LIMIT [offset], [limit];
+        + Default: 0
+    + limit (number, optional) - кількість об'єктів у видачі (MAX = 500). Аналог SQL LIMIT [offset], [limit];
+        + Default: 500
+
++ Request
+    + Headers
+
+            Authorization: Bearer {access_token}
+
++ Response 200 (application/json)
+    + Headers
+
+            Content-Range: items [startIndex]-[endIndex]/[totalCount]
+
+    + Body
+
+            [
+                {
+                    "id": 1,
+                    "faculty_id": 6,
+                    "name": "Політичної історії"
+                },
+                ...
+            ]
+
+
+### Item - кафедра [GET /department/{department_id}]
+Дозволяє отримати інформацію про кафедру за її ідентифікатором
+
++ Parameters
+    + department_id (number, required) - Ідентифікатор кафедри
+
++ Request
+    + Headers
+
+            Authorization: Bearer {access_token}
+
++ Response 200 (application/json)
+    + Body
+
+            {
+              "id": 1,
+              "faculty_id": 6,
+              "name": "Політичної історії"
+            }
+
+
+## Викладачі [/teacher]
+
+### List - перелік викладачів [GET /teacher{?offset,limit}]
+Дозволяє отримати перелік всіх викладачів
+
+
++ Parameters
+    + offset (number, optional) - зсув вибірки від початку. Аналог SQL LIMIT [offset], [limit];
+        + Default: 0
+    + limit (number, optional) - кількість об'єктів у видачі (MAX = 500). Аналог SQL LIMIT [offset], [limit];
+        + Default: 500
+
++ Request
+    + Headers
+
+            Authorization: Bearer {access_token}
+
++ Response 200 (application/json)
+    + Headers
+
+            Content-Range: items [startIndex]-[endIndex]/[totalCount]
+
+    + Body
+
+            [
+                {
+                  "id": 1,
+                  "department_id": 1,
+                  "first_name": "Іван",
+                  "middle_name": "Іванович",
+                  "last_name": "Іваненко"
+                },
+                ...
+            ]
+
+
+### Item - викладач [GET /teacher/{teacher_id}]
+Дозволяє отримати інформацію про викладача за його ідентифікатором
+
++ Parameters
+    + teacher_id (number, required) - Ідентифікатор викладача
+
++ Request
+    + Headers
+
+            Authorization: Bearer {access_token}
+
++ Response 200 (application/json)
+    + Body
+
+            {
+              "id": 1,
+              "department_id": 1,
+              "first_name": "Іван",
+              "middle_name": "Іванович",
+              "last_name": "Іваненко"
+            }
+
+
+## Спеціальності [/specialty]
+
+### List - перелік спеціальностей [GET /specialty{?offset,limit}]
+Дозволяє отримати перелік всіх спеціальностей
+
+
++ Parameters
+    + offset (number, optional) - зсув вибірки від початку. Аналог SQL LIMIT [offset], [limit];
+        + Default: 0
+    + limit (number, optional) - кількість об'єктів у видачі (MAX = 500). Аналог SQL LIMIT [offset], [limit];
+        + Default: 500
+
++ Request
+    + Headers
+
+            Authorization: Bearer {access_token}
+
++ Response 200 (application/json)
+    + Headers
+
+            Content-Range: items [startIndex]-[endIndex]/[totalCount]
+
+    + Body
+
+            [
+                {
+                  "id": 1,
+                  "faculty_id": 9,
+                  "code": "6101",
+                  "name": "Комп’ютерні науки"
+                },
+                ...
+            ]
+
+
+### Item - спеціальність [GET /specialty/{specialty_id}]
+Дозволяє отримати інформацію про спеціальність за її ідентифікатором
+
++ Parameters
+    + specialty_id (number, required) - Ідентифікатор спеціальності
+
++ Request
+    + Headers
+
+            Authorization: Bearer {access_token}
+
++ Response 200 (application/json)
+    + Body
+
+            {
+              "id": 1,
+              "faculty_id": 9,
+              "code": "6101",
+              "name": "Комп’ютерні науки"
+            }
+
+
+## Академічна група [/group]
+
+### List - перелік академічних груп [GET /group{?offset,limit}]
+Дозволяє отримати перелік всіх академічних груп
+
++ Parameters
+    + offset (number, optional) - зсув вибірки від початку. Аналог SQL LIMIT [offset], [limit];
+        + Default: 0
+    + limit (number, optional) - кількість об'єктів у видачі (MAX = 500). Аналог SQL LIMIT [offset], [limit];
+        + Default: 500
+
++ Request
+    + Headers
+
+            Authorization: Bearer {access_token}
+
++ Response 200 (application/json)
+    + Headers
+
+            Content-Range: items [startIndex]-[endIndex]/[totalCount]
+
+    + Body
+
+            [
+                {
+                  "id": 432,
+                  "specialty_id": 28,
+                  "course": 4,
+                  "name": "ООА-401"
+                },
+                ...
+            ]
+
+
+### Item - академічна група [GET /group/{group_id}]
+Дозволяє отримати інформацію про академічну групу за її ідентифікатором
+
++ Parameters
+    + group_id (number, required) - Ідентифікатор академічної групи
+
++ Request
+    + Headers
+
+            Authorization: Bearer {access_token}
+
++ Response 200 (application/json)
+    + Body
+
+            {
+              "id": 432,
+              "name": "ООА-401",
+              "course": 4,
+              "specialty": {
+                "id": 28,
+                "code": "6509",
+                "name": "Облік і аудит"
+              },
+              "faculty": {
+                "id": 5,
+                "name": "Обліково-економічний"
+              }
+            }
+
+
+
+## Користувач [/user]
+
+### Поточний користувач [GET /user/me]
+Дозволяє отримати інформацію про поточного користувача, який був авторизований за допомогою OAuth та для якого надано поточний access_token
+
++ Request
+    + Headers
+
+            Authorization: Bearer {access_token}
+
++ Response 200 (application/json)
+    + Body
+
+            {
+                "id": 999,
+                "email": "sample@exampla.com",
+                "last_name": "Іваненко",
+                "first_name": "Іван",
+                "middle_name": "Іванович",
+
+                "type": "simple",
+
+                ...
+
+                "type": "student",
+                "student_id": 99999,
+                "group_id": 9999,
+                "sex": "male",
+
+                ...
+
+                "type": "teacher",
+                "teacher_id": 9999,
+                "department_id": 99,
             }
