@@ -59,7 +59,7 @@ class Api
     }
 
     /**
-     * Устаналивает $accessToken
+     * Встановлює $accessToken
      * @param string $accessToken
      */
     public function setAccessToken($accessToken)
@@ -80,9 +80,9 @@ class Api
      * @param string $code Код, отриманий з браузера користувача
      * @param string $redirect_uri URL, на який була виконана переадресація
      * @return \stdClass
-     * @throws ApiException
      * @throws CurlException
      * @throws JsonException
+     * @throws ApiException
      */
     public function oauthToken($client_id, $client_secret, $code, $redirect_uri)
     {
@@ -111,9 +111,9 @@ class Api
      * @param int $client_id ID додатку
      * @param string $client_secret Секрет додатку
      * @return \stdClass
-     * @throws ApiException
      * @throws CurlException
      * @throws JsonException
+     * @throws ApiException
      */
     public function serverToken($client_id, $client_secret)
     {
@@ -178,12 +178,12 @@ class Api
     }
 
     /**
-     * @param string $method адрес метода
-     * @param array $params POST параметры
+     * @param string $method адреса методу
+     * @param array $params POST-параметри
      * @return \stdClass|array
-     * @throws ApiException
      * @throws CurlException
      * @throws JsonException
+     * @throws ApiException
      */
     public function request($method, array $params = array())
     {
@@ -203,9 +203,9 @@ class Api
 
     /**
      * @return \stdClass|array
-     * @throws ApiException
      * @throws CurlException
      * @throws JsonException
+     * @throws ApiException
      */
     protected function execRequest()
     {
@@ -224,7 +224,7 @@ class Api
         $answer = json_decode($response);
 
         if (null === $answer) {
-            throw new JsonException;
+            throw new JsonException($response);
         }
 
         if (isset($answer->error)) {
@@ -247,7 +247,7 @@ class Api
 
     protected function parseContentRange($headers)
     {
-        $pattern = '#^Content-Range:\s*items\s*(?P<start>[0-9]+)-(?P<end>[0-9]+)/(?<total>[0-9]+)\s*$#m';
+        $pattern = '#^Content-Range:\s*items\s*(?P<start>[0-9]+)-(?P<end>[0-9]+)/(?<total>[0-9]+)\s*$#mi';
 
         if (preg_match($pattern, $headers, $match)) {
             unset($match[0], $match[1], $match[2], $match[3], $match[4]);

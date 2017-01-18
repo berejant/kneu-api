@@ -8,8 +8,12 @@ namespace Kneu;
 
 class JsonException extends \Exception
 {
-    public function __construct ()
+    protected $response;
+
+    public function __construct ($response)
     {
+        $this->response = $response;
+
         $code = json_last_error();
 
         if(function_exists('json_last_error_msg')) {
@@ -42,4 +46,10 @@ class JsonException extends \Exception
 
         parent::__construct($message, $code);
     }
+
+    public function getResponse()
+    {
+        return $this->response;
+    }
+
 }

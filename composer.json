@@ -2,6 +2,7 @@
     "name": "kneu/api",
     "description": "PHP client for KNEU REST API Service",
     "type": "library",
+    "license": "MIT",
     "authors": [
         {
             "name": "Anton Berezhnoj",
