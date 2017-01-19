@@ -1,7 +1,7 @@
 FORMAT: 1A
 HOST: https://auth.kneu.edu.ua/api/
 
-# KNEU OAuth 2.0 AND RESTful API
+# KNEU OAuth 2.0 and RESTful API
 
 Документація з використання веб-сервісів КНЕУ:
  * Протокол OAuth 2.0 - забезпечує єдиний інтерфейс авторизації користувачів на веб-ресурсах КНЕУ (через веб-сайт університету).
@@ -36,7 +36,9 @@ HOST: https://auth.kneu.edu.ua/api/
      * `client_id` - `integer`  – ідентифікатор стороннього додатку.  
      * `redirect_uri` – `string` - адреса, на яку буде передано параметр `code`. Ця адреса повинна буде знаходиться **в межах домену**, вказаного при реєстрації стороннього ресурсу.  
      * `state` – optional. Якщо вказано – значення цього параметру буде передано у `redirect_uri`.
- 2. Користувачу буде запропоновано вести його логін та пароль. У випадку, якщо користувач раніше вже пройшов авторизацію на веб-сайті КНЕУ – його буде одразу переадресовано на `redirect_uri` без будь-яких затримок та додаткових діалогів. Також, замість логіну та паролю, користувач може авторизуватися за допомогою аккаунту в сторонньому сервісі або соціальній мережі (Google, Yandex, Facebook, Вконтакте, Mailru, Twitter тощо).
+ 2. Користувачу буде запропоновано вести його логін та пароль.
+ У випадку, якщо користувач раніше вже пройшов авторизацію на веб-сайті КНЕУ – його буде одразу переадресовано на `redirect_uri` без будь-яких затримок та додаткових діалогів.
+ Також, замість логіну та паролю, користувач може використати аккаунт в сторонньому сервісі або соціальній мережі (Google, Yandex, Facebook, Вконтакте, Mailru, Twitter тощо).
  3. Після успішної авторизації браузер користувача буде переадресовано за адресою `redirect_uri`, вказаної при відкритті діалогу. При цьому, для отримання доступу в GET-параметрах буде передано параметр code:
     > `redirect_uri`?`code`={code}[&`scope`={scope}]
 
@@ -50,34 +52,36 @@ HOST: https://auth.kneu.edu.ua/api/
     - Content-Type: application/x-www-form-urlencoded
     
     POST-параметри:
-     * `client_id` - integer - ідентифікатор стороннього додатку;
-     * `client_secret` - string - секретний код стороннього додатку;
-     * `grant_type` - string - вказати значення "**authorization_code**";
-     * `code` - string - Код, який був переданий на `redirect_uri`;
-     * `redirect_uri` - string - безпосередньо адреса `redirect_uri`, на який було здійсненно переадресацію клієнта. 
+     * `client_id` - `integer` - ідентифікатор стороннього додатку;
+     * `client_secret` - `string` - секретний код стороннього додатку;
+     * `grant_type` - `string` - вказати значення "**authorization_code**";
+     * `code` - `string` - Код, який був переданий на `redirect_uri`;
+     * `redirect_uri` - `string` - безпосередньо адреса `redirect_uri`, на який було здійсненно переадресацію клієнта. 
 
     Відповідь міститиме JSON:
-```json
-{
-  "access_token": "96931eb1ed29a47b4c38f97f7d49a8f6",
-  "token_type": "Bearer",
-  "expires_in": 7200,
-  "user_id": 999
-}
-```
-    Значення параметру `access_token` потрібно буде використати для роботи з RESTful API.
+    ```json
+    {
+      "access_token": "96931eb1ed29a47b4c38f97f7d49a8f6",
+      "token_type": "Bearer",
+      "expires_in": 7200,
+      "user_id": 999
+    }
+    ```
+    Значення параметру `access_token` потрібно буде використати для роботи з RESTful API. 
+    
+    В PHP-бібліотеці цей крок автоматизується за допомогою методу [**\Kneu\Api::oauthToken()**](https://github.com/berejant/kneu-api#oauthtokenclient_id-client_secret-code-redirect_uri)
 
 ## Авторизація сервера
-Для авторизація серверу стороннього додатку необхідно здійснити POST запит за адресою
+Для авторизації серверу стороннього додатку необхідно здійснити POST-запит за адресою
 > https://auth.kneu.edu.ua/oauth/token
 
 Headers:
 - Content-Type: application/x-www-form-urlencoded
 
 POST-параметри:
- * `client_id` - integer - ідентифікатор стороннього додатку;
- * `client_secret` - string - секретний код стороннього додатку;
- * `grant_type` - string - вказати значення "**client_credentials**".
+ * `client_id` - `integer` - ідентифікатор стороннього додатку;
+ * `client_secret` - `string` - секретний код стороннього додатку;
+ * `grant_type` - `string` - вказати значення "**client_credentials**".
 
 Відповідь міститиме JSON:
 ```json
@@ -87,7 +91,10 @@ POST-параметри:
   "expires_in": 7200,
 }
 ```
-    Значення параметру `access_token` потрібно буде використати для роботи з RESTful API.
+Значення параметру `access_token` потрібно буде використати для роботи з RESTful API.
+    
+В PHP-бібліотеці цей крок автоматизується за допомогою методу [**\Kneu\Api::serverToken()**](https://github.com/berejant/kneu-api#servertokenclient_id-client_secret)
+
 
 # KNEU RESTful API
 Для роботи з RESTful API необхідно володіти значенням `access_token`.
@@ -97,6 +104,8 @@ POST-параметри:
 
 При виконанні запитів до RESTful API у заголовках необхідно передавати значення `access_token`:
 > Authorization: Bearer [access_token]
+
+Для спрощення роботи з API рекомендуєтся використати [PHP-бібліотеку](https://github.com/berejant/kneu-api) - готовий кліент для роботи з KNEU RESTful API.
 
 ## Факультети [/faculty]
 
