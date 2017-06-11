@@ -56,7 +56,7 @@ $api = new Kneu\Api;
  * **Parameters:**
    * `$client_id` — `int` — ID додатку, який надається адміністратором
    * `$client_secret` — `string` — Секрет додатку, який надається адміністратором
- * **Returns:** `\stdClass` - аналогічно до результату виконання serverToken(), властивість **user_id** відсутня
+ * **Returns:** `\stdClass` - аналогічно до результату виконання oauthToken(), властивість **user_id** відсутня
  * **Exceptions:**
    * `Kneu\CurlException`
    * `Kneu\JsonException`
