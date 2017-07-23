@@ -4,6 +4,8 @@ This PHP Library provide programmatic user-friendly interface to work with the K
 
 Ця PHP-бібліотека забезпечує зручний програмний інтерфейс для роботи з КНЕУ RESTful API та протоколом OAuth 2.0.
 
+[Документація](http://docs.kneu.apiary.io/)
+
 ## Встановлення
 
 Додати бібліотеку до Вашого проекту за допомогою Composer
