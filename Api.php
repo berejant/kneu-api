@@ -54,6 +54,7 @@ class Api
         curl_setopt($this->ch, CURLOPT_RETURNTRANSFER, true);
         curl_setopt($this->ch, CURLOPT_HEADER, true);
         curl_setopt($this->ch, CURLOPT_TIMEOUT, 10);
+        curl_setopt($this->ch, CURLOPT_CAINFO, __DIR__ . '/cacert.pem');
 
         $this->setAccessToken($accessToken);
     }
