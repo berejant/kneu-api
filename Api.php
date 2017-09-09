@@ -257,7 +257,7 @@ class Api
     }
 
     /**
-     * @param string $key
+     * @param string $key NULL or enum("start", "end", "total")
      * @return array|integer|null
      */
     public function getContentRange($key)
