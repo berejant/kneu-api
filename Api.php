@@ -260,7 +260,7 @@ class Api
      * @param string $key NULL or enum("start", "end", "total")
      * @return array|integer|null
      */
-    public function getContentRange($key)
+    public function getContentRange($key = null)
     {
         if(null === $key) {
             return $this->contentRange;
