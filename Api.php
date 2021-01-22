@@ -66,12 +66,7 @@ class Api
     public function setAccessToken($accessToken)
     {
         $this->accessToken = $accessToken;
-
-        if ($this->accessToken) {
-            curl_setopt($this->ch, CURLOPT_HTTPHEADER, array('Authorization: Bearer ' . $this->accessToken));
-        } else {
-            curl_setopt($this->ch, CURLOPT_HTTPHEADER, array());
-        }
+        curl_setopt($this->ch, CURLOPT_HTTPHEADER, $accessToken ? ['Authorization: Bearer ' . $accessToken] : []);
     }
 
     /**
@@ -87,18 +82,15 @@ class Api
      */
     public function oauthToken($client_id, $client_secret, $code, $redirect_uri)
     {
-
-        $params = array(
+        curl_setopt($this->ch, CURLOPT_URL, self::TOKEN_URL);
+        curl_setopt($this->ch, CURLOPT_POST, true);
+        curl_setopt($this->ch, CURLOPT_POSTFIELDS, http_build_query([
             'client_id' => $client_id,
             'client_secret' => $client_secret,
             'grant_type' => 'authorization_code',
             'code' => $code,
             'redirect_uri' => $redirect_uri
-        );
-
-        curl_setopt($this->ch, CURLOPT_URL, self::TOKEN_URL);
-        curl_setopt($this->ch, CURLOPT_POST, true);
-        curl_setopt($this->ch, CURLOPT_POSTFIELDS, http_build_query($params));
+        ]));
 
         $answer = $this->execRequest();
 
@@ -118,15 +110,13 @@ class Api
      */
     public function serverToken($client_id, $client_secret)
     {
-        $params = array(
+        curl_setopt($this->ch, CURLOPT_URL, self::TOKEN_URL);
+        curl_setopt($this->ch, CURLOPT_POST, true);
+        curl_setopt($this->ch, CURLOPT_POSTFIELDS, http_build_query([
             'client_id' => $client_id,
             'client_secret' => $client_secret,
             'grant_type' => 'client_credentials',
-        );
-
-        curl_setopt($this->ch, CURLOPT_URL, self::TOKEN_URL);
-        curl_setopt($this->ch, CURLOPT_POST, true);
-        curl_setopt($this->ch, CURLOPT_POSTFIELDS, http_build_query($params));
+        ]));
 
         $answer = $this->execRequest();
 
@@ -142,10 +132,10 @@ class Api
 
     protected function getEntitiesList($entityName, $offset = null, $limit = null)
     {
-        return $this->request($entityName . '?' . http_build_query(array(
+        return $this->request($entityName . '?' . http_build_query([
                 'limit' => $limit,
                 'offset' => $offset
-            )));
+            ]));
     }
 
     public function __call($name, $arguments)
@@ -237,16 +227,12 @@ class Api
             throw new ApiException('Waiting for 20x HTTP code, but receiving ' . $httpCode);
         }
 
-        if(206 === $httpCode && ($cr = $this->parseContentRange($headers))) {
-            $this->contentRange = $cr;
-        } else {
-            $this->contentRange = array();
-        }
+        $this->contentRange = $httpCode === 206 ? $this->parseContentRange($headers) : [];
 
         return $answer;
     }
 
-    protected function parseContentRange($headers)
+    protected function parseContentRange($headers): array
     {
         $pattern = '#^Content-Range:\s*items\s*(?P<start>[0-9]+)-(?P<end>[0-9]+)/(?<total>[0-9]+)\s*$#mi';
 
@@ -254,6 +240,8 @@ class Api
             unset($match[0], $match[1], $match[2], $match[3], $match[4]);
             return array_map('intval', $match);
         }
+        
+        return [];
     }
 
     /**
@@ -262,11 +250,7 @@ class Api
      */
     public function getContentRange($key = null)
     {
-        if(null === $key) {
-            return $this->contentRange;
-        }
-
-        return isset($this->contentRange[$key]) ? $this->contentRange[$key] : null;
+        return is_null($key) ? $this->contentRange : $this->contentRange[$key] ?? null;
     }
 
     public function __destruct()
