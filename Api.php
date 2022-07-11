@@ -2,19 +2,24 @@
 
 namespace Kneu;
 
+use Generator;
+use stdClass;
+
 /**
  * Class Api
  * @package Kneu
- * @method array getFaculties      (integer $offset = null, integer $limit = null)  Отримати масив факультетів
- * @method array getDepartments    (integer $offset = null, integer $limit = null)  Отримати масив кафедр
- * @method array getTeachers       (integer $offset = null, integer $limit = null)  Отримати масив викладачів
- * @method array getSpecialties    (integer $offset = null, integer $limit = null)  Отримати масив спеціальностей
- * @method array getGroups         (integer $offset = null, integer $limit = null)  Отримати масив груп
- * @method \stdClass getFaculty    (integer $id) Отримати факультет зі вказаним id
- * @method \stdClass getDepartment (integer $id) Отримати кафедру зі вказаним id
- * @method \stdClass getTeacher    (integer $id) Отримати викладача зі вказаним id
- * @method \stdClass getSpecialty  (integer $id) Отримати спеціаліність зі вказаним id
- * @method \stdClass getGroup      (integer $id) Отримати групу зі вказаним id
+ * @method Generator getFaculties   (array $filters = [], integer $limit = null)  Отримати список факультетів
+ * @method Generator getDepartments (array $filters = [], integer $limit = null)  Отримати список кафедр
+ * @method Generator getTeachers    (array $filters = [], integer $limit = null)  Отримати список викладачів
+ * @method Generator getSpecialties (array $filters = [], integer $limit = null)  Отримати список спеціальностей
+ * @method Generator getGroups      (array $filters = [], integer $limit = null)  Отримати список груп
+ * @method Generator getStudents    (array $filters = [], integer $limit = null)  Отримати список студентів
+ * @method stdClass getFaculty    (integer $id) Отримати факультет зі вказаним id
+ * @method stdClass getDepartment (integer $id) Отримати кафедру зі вказаним id
+ * @method stdClass getTeacher    (integer $id) Отримати викладача зі вказаним id
+ * @method stdClass getSpecialty  (integer $id) Отримати спеціаліність зі вказаним id
+ * @method stdClass getGroup      (integer $id) Отримати групу зі вказаним id
+ * @method stdClass getStudent    (integer $id) Отримати студента зі вказаним id
  */
 class Api
 {
@@ -33,7 +38,7 @@ class Api
     protected $ch;
 
     /** @var array */
-    protected $contentRange = array();
+    protected $contentRange = [];
 
     protected $entities = [
         'faculties' => 'faculty',
@@ -41,6 +46,7 @@ class Api
         'teachers' => 'teacher',
         'specialties' => 'specialty',
         'groups' => 'group',
+        'students' => 'student',
     ];
 
     /**
@@ -60,6 +66,39 @@ class Api
     }
 
     /**
+     * Завершити процедуру oauth - отримати access_token для роботи з API
+     * @param int $client_id ID додатку
+     * @param string $client_secret Секрет додатку
+     * @param string $code Код, отриманий з браузера користувача
+     * @param string $redirect_uri URL, на який була виконана переадресація
+     * @throws CurlException
+     * @throws JsonException
+     * @throws ApiException
+     * @return static
+     */
+    public static function createWithOauthToken($client_id, $client_secret, $code, $redirect_uri) {
+        $self = new static();
+        $self->oauthToken($client_id, $client_secret, $code, $redirect_uri);
+        return $self;
+    }
+
+
+    /**
+     * Авторизація сервера додатки - отримати access_token для роботи з API
+     * @param int $client_id ID додатку
+     * @param string $client_secret Секрет додатку
+     * @throws CurlException
+     * @throws JsonException
+     * @throws ApiException
+     * @return static
+     */
+    public static function createWithServerToken($client_id, $client_secret) {
+        $self = new static();
+        $self->serverToken($client_id, $client_secret);
+        return $self;
+    }
+
+    /**
      * Встановлює $accessToken
      * @param string $accessToken
      */
@@ -75,7 +114,7 @@ class Api
      * @param string $client_secret Секрет додатку
      * @param string $code Код, отриманий з браузера користувача
      * @param string $redirect_uri URL, на який була виконана переадресація
-     * @return \stdClass
+     * @return stdClass
      * @throws CurlException
      * @throws JsonException
      * @throws ApiException
@@ -103,7 +142,7 @@ class Api
      * Авторизація сервера додатки - отримати access_token для роботи з API
      * @param int $client_id ID додатку
      * @param string $client_secret Секрет додатку
-     * @return \stdClass
+     * @return stdClass
      * @throws CurlException
      * @throws JsonException
      * @throws ApiException
@@ -125,19 +164,54 @@ class Api
         return $answer;
     }
 
+    /**
+     * @throws JsonException
+     * @throws ApiException
+     * @throws CurlException
+     */
     protected function getEntity($entityName, $entityId)
     {
         return $this->request($entityName . '/' . $entityId);
     }
 
-    protected function getEntitiesList($entityName, $offset = null, $limit = null)
+    /**
+     * @throws JsonException
+     * @throws ApiException
+     * @throws CurlException
+     * @return Generator
+     */
+    protected function getEntitiesList($entityName, array $filters = [], $limit = null)
     {
-        return $this->request($entityName . '?' . http_build_query([
+        $offset = 0;
+        do {
+            $entities = $this->request($entityName . '?' . http_build_query($filters + [
                 'limit' => $limit,
                 'offset' => $offset
             ]));
+            echo 'o: ', $offset, ' - ', count($entities), PHP_EOL;
+
+            /** @var stdClass $entity */
+            foreach($entities as $entity) {
+                yield $entity;
+            }
+
+            $offset = $this->getContentRange('end') + 1;
+            $total = $this->getContentRange('total');
+
+            if (!is_null($limit)) {
+                $limit -= count($entities);
+                if ($limit <= 0) {
+                    break;
+                }
+            }
+        } while ($offset < $total);
     }
 
+    /**
+     * @throws ApiException
+     * @throws JsonException
+     * @throws CurlException
+     */
     public function __call($name, $arguments)
     {
         if (substr($name, 0, 3) == 'get') {
@@ -150,7 +224,7 @@ class Api
             } elseif (isset($this->entities[$entityName])) {
                 return $this->getEntitiesList(
                     $this->entities[$entityName],
-                    isset($arguments[0]) ? $arguments[0] : null,
+                    isset($arguments[0]) ? $arguments[0] : [],
                     isset($arguments[1]) ? $arguments[1] : null
                 );
 
@@ -161,7 +235,10 @@ class Api
     }
 
     /**
-     * @return \stdClass
+     * @return stdClass
+     * @throws ApiException
+     * @throws CurlException
+     * @throws JsonException
      */
     public function getUser()
     {
@@ -171,7 +248,7 @@ class Api
     /**
      * @param string $method адреса методу
      * @param array $params POST-параметри
-     * @return \stdClass|array
+     * @return stdClass|array
      * @throws CurlException
      * @throws JsonException
      * @throws ApiException
@@ -193,7 +270,7 @@ class Api
     }
 
     /**
-     * @return \stdClass|array
+     * @return stdClass|array
      * @throws CurlException
      * @throws JsonException
      * @throws ApiException
@@ -232,7 +309,7 @@ class Api
         return $answer;
     }
 
-    protected function parseContentRange($headers): array
+    protected function parseContentRange($headers)
     {
         $pattern = '#^Content-Range:\s*items\s*(?P<start>[0-9]+)-(?P<end>[0-9]+)/(?<total>[0-9]+)\s*$#mi';
 
@@ -245,12 +322,13 @@ class Api
     }
 
     /**
-     * @param string $key NULL or enum("start", "end", "total")
+     * @param string|null $key NULL or enum("start", "end", "total")
      * @return array|integer|null
      */
     public function getContentRange($key = null)
     {
-        return is_null($key) ? $this->contentRange : $this->contentRange[$key] ?? null;
+        return is_null($key) ? $this->contentRange :
+            (isset($this->contentRange[$key]) ? $this->contentRange[$key] : null);
     }
 
     public function __destruct()

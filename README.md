@@ -155,7 +155,7 @@ require __DIR__ . '/vendor/autoload.php';
 
 $api = new Kneu\Api;
 
-$accessToken = $api->oauthToken(__CLIENT_ID__, __CLIENT_SECRET__, filter_input(INPUT_GET, 'code'), $redirect_uri);
+$api = Kneu\Api::createWithOauthToken(__CLIENT_ID__, __CLIENT_SECRET__, filter_input(INPUT_GET, 'code'), $redirect_uri);
 /*
     $redirect_uri - як правило це current url без параметрів code та scope.
     Якщо використаний фреймворк не дозволяє побудувати штатними засобами $redirect_uri,
@@ -166,16 +166,6 @@ $accessToken = $api->oauthToken(__CLIENT_ID__, __CLIENT_SECRET__, filter_input(I
 
     $redirect_uri = 'http' . ($isSsl ? 's' : '') . '//' . $_SERVER['HTTP_HOST']
                   . rtrim(preg_replace('#(code|state)=.*?($|\&)#', '', $_SERVER['REQUEST_URI']), '?');
-*/
-
-var_dump($accessToken);
-/*
-object(stdClass) (4) {
-  ["access_token"] => string(32) "63f02b799aea683bc045adadf5b4x429"
-  ["token_type"] => string(6) "Bearer"
-  ["expires_in"] => int(7200)
-  ["user_id"] => int(999)
-}
 */
 
 $user = $api->getUser();
@@ -257,26 +247,13 @@ if('student' == $user->type) {
 ```php
 require __DIR__ . '/vendor/autoload.php';
 
-$api = new Kneu\Api;
-
-$token = $api->serverToken(__CLIENT_ID__, __CLIENT_SECRET__);
+$api = new Kneu\Api::createWithServerToken(__CLIENT_ID__, __CLIENT_SECRET__)
 
 try {
-    $offset = 0;
-    do {
-        // отримання списку викладачів партіями по 500 записів.
-        // За замовчування limit = 500. Ліміт можно вказати довільний, але не більше 500.
-        $teachers = $api->getTeachers($offset /* , $limit = 500 */);
-
-        /** @var stdClass $teacher */
-        foreach($teachers as $teacher) {
-            // do anything with $teacher...
-        }
-
-        $offset = $api->getContentRange('end') + 1;
-        $total = $api->getContentRange('total');
-
-    } while ($offset < $total);
+     /** @var stdClass $teacher */
+     foreach($api->getTeachers() as $teacher) {
+         // do anything with $teacher...
+     }
 
 /* Обробка помилок - або кожну помилку окремо або один єдиний блок catch(\Exception $e) */
 } catch (\Kneu\CurlException $e) {
