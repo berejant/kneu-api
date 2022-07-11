@@ -75,22 +75,22 @@ $api = new Kneu\Api;
    * `Kneu\JsonException`
    * `Kneu\ApiException`
 
-## `getFaculties(integer $offset = null, integer $limit = null)`
+## `getFaculties(array $filters = [], integer $limit = null): Generator`
 Отримати перелік факультетів
-## `getDepartments(integer $offset = null, integer $limit = null)`
+## `getDepartments(array $filters = [], integer $limit = null): Generator`
 Отримати перелік кафедр
 
-## `getTeachers(integer $offset = null, integer $limit = null)`
+## `getTeachers(array $filters = [], integer $limit = null): Generator`
 Отримати перелік викладачів
 
-## `getSpecialties(integer $offset = null, integer $limit = null)`
+## `getSpecialties(array $filters = [], integer $limit = null): Generator`
 Отримати перелік спеціальностей
 
-## `getGroups(integer $offset = null, integer $limit = null)`
+## `getGroups(array $filters = [], integer $limit = null): Generator`
 Отримати перелік академічних груп
 
  * **Parameters:**
-   * `$offset` — `integer` — зсув вибірки від початку. Аналог SQL LIMIT [offset], [limit];
+   * `$filters` — `array` — фільтр для вибірки певних об'єктів
    * `$limit` — `integer` — кількість об'єктів у видачі (MAX = 500). Аналог SQL LIMIT [offset], [limit];
  * **Returns:** `array`
  * **Exceptions:**
@@ -112,6 +112,9 @@ $api = new Kneu\Api;
 
 ## `getGroup(integer $id)`
 Отримати групу зі вказаним id
+
+## `getStudent(integer $id)`
+Отримати студента зі вказаним id
 
 ## `getUser()`
 
