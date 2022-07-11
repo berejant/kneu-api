@@ -126,7 +126,7 @@ POST-параметри:
 + Parameters
     + offset (number, optional) - зсув вибірки від початку. Аналог SQL LIMIT [offset], [limit];
         + Default: 0
-    + limit (number, optional) - кількість об'єктів у видачі (MAX = 500). Аналог SQL LIMIT [offset], [limit];
+    + limit (number, optional) - кількість об'єктів у видачі (MAX = 2000). Аналог SQL LIMIT [offset], [limit];
         + Default: 500
 
 + Request
@@ -179,7 +179,7 @@ POST-параметри:
 + Parameters
     + offset (number, optional) - зсув вибірки від початку. Аналог SQL LIMIT [offset], [limit];
         + Default: 0
-    + limit (number, optional) - кількість об'єктів у видачі (MAX = 500). Аналог SQL LIMIT [offset], [limit];
+    + limit (number, optional) - кількість об'єктів у видачі (MAX = 2000). Аналог SQL LIMIT [offset], [limit];
         + Default: 500
 
 + Request
@@ -234,7 +234,7 @@ POST-параметри:
 + Parameters
     + offset (number, optional) - зсув вибірки від початку. Аналог SQL LIMIT [offset], [limit];
         + Default: 0
-    + limit (number, optional) - кількість об'єктів у видачі (MAX = 500). Аналог SQL LIMIT [offset], [limit];
+    + limit (number, optional) - кількість об'єктів у видачі (MAX = 2000). Аналог SQL LIMIT [offset], [limit];
         + Default: 500
 
 + Request
@@ -293,7 +293,7 @@ POST-параметри:
 + Parameters
     + offset (number, optional) - зсув вибірки від початку. Аналог SQL LIMIT [offset], [limit];
         + Default: 0
-    + limit (number, optional) - кількість об'єктів у видачі (MAX = 500). Аналог SQL LIMIT [offset], [limit];
+    + limit (number, optional) - кількість об'єктів у видачі (MAX = 2000). Аналог SQL LIMIT [offset], [limit];
         + Default: 500
 
 + Request
@@ -349,7 +349,7 @@ POST-параметри:
 + Parameters
     + offset (number, optional) - зсув вибірки від початку. Аналог SQL LIMIT [offset], [limit];
         + Default: 0
-    + limit (number, optional) - кількість об'єктів у видачі (MAX = 500). Аналог SQL LIMIT [offset], [limit];
+    + limit (number, optional) - кількість об'єктів у видачі (MAX = 2000). Аналог SQL LIMIT [offset], [limit];
         + Default: 500
 
 + Request
@@ -402,6 +402,71 @@ POST-параметри:
                 "id": 5,
                 "name": "Обліково-економічний"
               }
+            }
+
+
+
+## Студент [/student]
+
+### List - перелік академічних груп [GET /student{?offset,limit}]
+Дозволяє отримати перелік всіх студентів
+
++ Parameters
+    + offset (number, optional) - зсув вибірки від початку. Аналог SQL LIMIT [offset], [limit];
+        + Default: 0
+    + limit (number, optional) - кількість об'єктів у видачі (MAX = 2000). Аналог SQL LIMIT [offset], [limit];
+        + Default: 500
+
++ Request
+    + Headers
+
+            Authorization: Bearer [access_token]
+
++ Response 200 (application/json)
+    + Headers
+
+            Content-Range: items [startIndex]-[endIndex]/[totalCount]
+
+    + Body
+
+            [
+                {
+                  "id": 444,
+                  "group_id": 123,
+                  "gradebook_id": "999999",
+                  "sex": "male|female",
+                  "first_name": "Павло",
+                  "middle_name": "Володимирович",
+                  "last_name": "Іваненко",
+                  "birthdate": "1992-07-13",
+                },
+                ...
+            ]
+
+
+### Item - академічна група [GET /student/{group_id}]
+Дозволяє отримати інформацію про студента за його ідентифікатором
+
++ Parameters
+    + group_id (number, required) - Ідентифікатор академічної групи
+
++ Request
+    + Headers
+
+            Authorization: Bearer [access_token]
+
++ Response 200 (application/json)
+    + Body
+
+            {
+              "id": 444,
+              "group_id": 123,
+              "gradebook_id": "999999",
+              "sex": "male|female",
+              "first_name": "Павло",
+              "middle_name": "Володимирович",
+              "last_name": "Іваненко",
+              "birthdate": "1992-07-13",
             }
 
 

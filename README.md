@@ -91,7 +91,7 @@ $api = new Kneu\Api;
 
  * **Parameters:**
    * `$filters` — `array` — фільтр для вибірки певних об'єктів
-   * `$limit` — `integer` — кількість об'єктів у видачі (MAX = 500). Аналог SQL LIMIT [offset], [limit];
+   * `$limit` — `integer` — кількість об'єктів у видачі (MAX = 2000). Аналог SQL LIMIT [offset], [limit];
  * **Returns:** `array`
  * **Exceptions:**
    * `Kneu\CurlException`
