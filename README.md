@@ -162,7 +162,7 @@ $accessToken = $api->oauthToken(__CLIENT_ID__, __CLIENT_SECRET__, filter_input(I
     то його можна отримати наступним чином:
 
     $isSsl = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] != 'off')
-          || $_SERVER['SERVER_PORT'] == 443 || $_SERVER['HTTP_X_FORWARDED_PORT'] == 443;
+          || ($_SERVER['SERVER_PORT'] ?? $_SERVER['HTTP_X_FORWARDED_PORT'] ?? null) == 443;
 
     $redirect_uri = 'http' . ($isSsl ? 's' : '') . '//' . $_SERVER['HTTP_HOST']
                   . rtrim(preg_replace('#(code|state)=.*?($|\&)#', '', $_SERVER['REQUEST_URI']), '?');
