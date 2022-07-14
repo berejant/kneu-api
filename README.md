@@ -12,24 +12,7 @@ This PHP Library provide programmatic user-friendly interface to work with [the 
 
 ## Опис методів
 
-### Ініціалізація об'єкту для роботи з API
-
-```php
-$api = new Kneu\Api;
-```
-
-#### `__construct($accessToken = null)`
-
- * **Parameters:** `$accessToken` — `string|null` — Токен для роботи з API.
- * **See also:** Api::setAccessToken(), Api::oauthToken(), Api::serverToken()
-
-### `setAccessToken($accessToken)`
-
-Встановлює $accessToken
-
- * **Parameters:** `$accessToken` — `string`
-
-## `oauthToken($client_id, $client_secret, $code, $redirect_uri)`
+## `$api = Kneu\Api::createWithOauthToken($client_id, $client_secret, $code, $redirect_uri)`
 
 Завершити процедуру oauth - отримати access_token на основі отриманого від клієнта значення code.
 
@@ -49,7 +32,7 @@ $api = new Kneu\Api;
    * `Kneu\JsonException`
    * `Kneu\ApiException`
 
-## `serverToken($client_id, $client_secret)`
+## `$api = Kneu\Api::createWithServerToken($client_id, $client_secret)`
 
 Авторизація стороннього серверу для роботи з API (імпорту списку факультетів, кафедр, викладачів, академічних груп, спеціальностей).
 
@@ -62,32 +45,43 @@ $api = new Kneu\Api;
    * `Kneu\JsonException`
    * `Kneu\ApiException`
 
-## `request($method, array $params = array())`
 
-Виклик довільного API-методу.
+## `getUser()`
 
- * **Parameters:**
-   * `$method` — `string` — адреса методу
-   * `$params` — `array` — POST параметри
- * **Returns:** `\stdClass|array`
- * **Exceptions:**
-   * `Kneu\CurlException`
-   * `Kneu\JsonException`
-   * `Kneu\ApiException`
+Отримати інформацію про поточного користувача з поточним access_token.
+Інформація про користувача доступна лише після виклику oauthToken().
+При використанні авторизації серверу (serverToken()) - інформація про користувача не надається.
+
+ * **Returns:** `\stdClass` — має властивості:
+   * **id** - `integer` - ідентифікатор користувача,
+   * **email** - `string`,
+   * **last_name** - `string`,
+   * **first_name** - `string`,
+   * **middle_name** - `string`,
+   * **type** - `enum("student", "teacher", "simple")`
+   * **student_id** - `null|integer` - ідентифікатор облікового запису студента (не номер залікової книжки)
+   * **group_id** - `null|integer` - ідентифікатор академічної групи студента
+   * **teacher_id** - `null|integer` - ідентифікатор викладача
+   * **department_id** - `null|integer` - ідентифікатор кафедри, до якої належить викладач
+   * **sex** - `null|enum("male", "female")` - Стать (чоловік/жінка), доступно лише для студентів
 
 ## `getFaculties(array $filters = [], integer $limit = null): Generator`
 Отримати перелік факультетів
+
 ## `getDepartments(array $filters = [], integer $limit = null): Generator`
 Отримати перелік кафедр
 
 ## `getTeachers(array $filters = [], integer $limit = null): Generator`
-Отримати перелік викладачів
+Отримати перелік викладачів.
+Внутрішня реалізація метода автоматично робить потрібну кількисть запитів до сервера, щоб отримати повний список викладачів.
 
 ## `getSpecialties(array $filters = [], integer $limit = null): Generator`
 Отримати перелік спеціальностей
+Внутрішня реалізація метода автоматично робить потрібну кількисть запитів до сервера, щоб отримати повний список спеціальностей.
 
 ## `getGroups(array $filters = [], integer $limit = null): Generator`
 Отримати перелік академічних груп
+Внутрішня реалізація метода автоматично робить потрібну кількисть запитів до сервера, щоб отримати повний список груп.
 
  * **Parameters:**
    * `$filters` — `array` — фільтр для вибірки певних об'єктів
@@ -116,25 +110,18 @@ $api = new Kneu\Api;
 ## `getStudent(integer $id)`
 Отримати студента зі вказаним id
 
-## `getUser()`
+## `request($method, array $params = array())`
 
-Отримати інформацію про поточного користувача з поточним access_token.
-Інформація про користувача доступна лише після виклику oauthToken().
-При використанні авторизації серверу (serverToken()) - інформація про користувача не надається.
+Виклик довільного API-методу.
 
- * **Returns:** `\stdClass` — має властивості:
-   * **id** - `integer` - ідентифікатор користувача,
-   * **email** - `string`,
-   * **last_name** - `string`,
-   * **first_name** - `string`,
-   * **middle_name** - `string`,
-   * **type** - `enum("student", "teacher", "simple")`
-   * **student_id** - `null|integer` - ідентифікатор облікового запису студента (не номер залікової книжки)
-   * **group_id** - `null|integer` - ідентифікатор академічної групи студента
-   * **teacher_id** - `null|integer` - ідентифікатор викладача
-   * **department_id** - `null|integer` - ідентифікатор кафедри, до якої належить викладач
-   * **sex** - `null|enum("male", "female")` - Стать (чоловік/жінка), доступно лише для студентів
-
+ * **Parameters:**
+   * `$method` — `string` — адреса методу
+   * `$params` — `array` — POST параметри
+ * **Returns:** `\stdClass|array`
+ * **Exceptions:**
+   * `Kneu\CurlException`
+   * `Kneu\JsonException`
+   * `Kneu\ApiException`
 
 ## `getContentRange($key)`
 
