@@ -242,7 +242,6 @@ class Api
                 return $this->getEntity($entityName, $arguments[0]);
 
             } elseif (isset($this->entities[$entityName])) {
-                var_dump($arguments);
                 $arguments = array_slice($arguments, 0, 3);
                 $filters = isset($arguments[0]) && is_array($arguments[0]) ? array_shift($arguments) : [];
 
