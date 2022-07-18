@@ -5,15 +5,21 @@ namespace Kneu;
 use Generator;
 use stdClass;
 
+require_once __DIR__ . '/ApiException.php';
+require_once __DIR__ . '/TransportException.php';
+require_once __DIR__ . '/CurlException.php';
+require_once __DIR__ . '/HttpException.php';
+require_once __DIR__ . '/JsonException.php';
+
 /**
  * Class Api
  * @package Kneu
- * @method Generator getFaculties   (array $filters = [], integer $limit = null)  Отримати список факультетів
- * @method Generator getDepartments (array $filters = [], integer $limit = null)  Отримати список кафедр
- * @method Generator getTeachers    (array $filters = [], integer $limit = null)  Отримати список викладачів
- * @method Generator getSpecialties (array $filters = [], integer $limit = null)  Отримати список спеціальностей
- * @method Generator getGroups      (array $filters = [], integer $limit = null)  Отримати список груп
- * @method Generator getStudents    (array $filters = [], integer $limit = null)  Отримати список студентів
+ * @method Generator getFaculties   (int|array $filtersOrOffsetOrLimit = [], integer $offsetOrLimit, integer $limit = null))  Отримати список факультетів
+ * @method Generator getDepartments (int|array $filtersOrOffsetOrLimit = [], integer $offsetOrLimit, integer $limit = null))  Отримати список кафедр
+ * @method Generator getTeachers    (int|array $filtersOrOffsetOrLimit = [], integer $offsetOrLimit, integer $limit = null))  Отримати список викладачів
+ * @method Generator getSpecialties (int|array $filtersOrOffsetOrLimit = [], integer $offsetOrLimit, integer $limit = null))  Отримати список спеціальностей
+ * @method Generator getGroups      (int|array $filtersOrOffsetOrLimit = [], integer $offsetOrLimit, integer $limit = null)  Отримати список груп
+ * @method Generator getStudents    (int|array $filtersOrOffsetOrLimit = [], integer $offsetOrLimit, integer $limit = null))  Отримати список студентів
  * @method stdClass getFaculty    (integer $id) Отримати факультет зі вказаним id
  * @method stdClass getDepartment (integer $id) Отримати кафедру зі вказаним id
  * @method stdClass getTeacher    (integer $id) Отримати викладача зі вказаним id
@@ -49,6 +55,8 @@ class Api
         'students' => 'student',
     ];
 
+    protected $returnAssociative = false;
+
     /**
      * @param string|null $accessToken
      * @see Api::setAccessToken()
@@ -59,7 +67,7 @@ class Api
 
         curl_setopt($this->ch, CURLOPT_RETURNTRANSFER, true);
         curl_setopt($this->ch, CURLOPT_HEADER, true);
-        curl_setopt($this->ch, CURLOPT_TIMEOUT, 10);
+        curl_setopt($this->ch, CURLOPT_TIMEOUT, 20);
         curl_setopt($this->ch, CURLOPT_CAINFO, __DIR__ . '/cacert.pem');
 
         $this->setAccessToken($accessToken);
@@ -71,9 +79,10 @@ class Api
      * @param string $client_secret Секрет додатку
      * @param string $code Код, отриманий з браузера користувача
      * @param string $redirect_uri URL, на який була виконана переадресація
-     * @throws CurlException
-     * @throws JsonException
      * @throws ApiException
+     * @throws JsonException
+     * @throws HttpException
+     * @throws CurlException
      * @return static
      */
     public static function createWithOauthToken($client_id, $client_secret, $code, $redirect_uri) {
@@ -87,9 +96,10 @@ class Api
      * Авторизація сервера додатки - отримати access_token для роботи з API
      * @param int $client_id ID додатку
      * @param string $client_secret Секрет додатку
-     * @throws CurlException
-     * @throws JsonException
      * @throws ApiException
+     * @throws JsonException
+     * @throws HttpException
+     * @throws CurlException
      * @return static
      */
     public static function createWithServerToken($client_id, $client_secret) {
@@ -115,9 +125,10 @@ class Api
      * @param string $code Код, отриманий з браузера користувача
      * @param string $redirect_uri URL, на який була виконана переадресація
      * @return stdClass
-     * @throws CurlException
-     * @throws JsonException
      * @throws ApiException
+     * @throws JsonException
+     * @throws HttpException
+     * @throws CurlException
      */
     public function oauthToken($client_id, $client_secret, $code, $redirect_uri)
     {
@@ -143,9 +154,10 @@ class Api
      * @param int $client_id ID додатку
      * @param string $client_secret Секрет додатку
      * @return stdClass
-     * @throws CurlException
-     * @throws JsonException
      * @throws ApiException
+     * @throws JsonException
+     * @throws HttpException
+     * @throws CurlException
      */
     public function serverToken($client_id, $client_secret)
     {
@@ -165,8 +177,9 @@ class Api
     }
 
     /**
-     * @throws JsonException
      * @throws ApiException
+     * @throws JsonException
+     * @throws HttpException
      * @throws CurlException
      */
     protected function getEntity($entityName, $entityId)
@@ -175,20 +188,26 @@ class Api
     }
 
     /**
-     * @throws JsonException
      * @throws ApiException
+     * @throws JsonException
+     * @throws HttpException
      * @throws CurlException
-     * @return Generator
      */
-    protected function getEntitiesList($entityName, array $filters = [], $limit = null)
+    protected function getEntitiesList($entityName, array $filters = [], $offset = 0, $limit = null)
     {
-        $offset = 0;
+        if (!isset($limit) && isset($filters['limit'])) {
+            $limit = (int)$filters['limit'];
+        }
+
+        if (!isset($offset) && isset($filters['offset'])) {
+            $offset = (int)$filters['offset'];
+        }
+
         do {
             $entities = $this->request($entityName . '?' . http_build_query($filters + [
-                'limit' => $limit,
-                'offset' => $offset
+                'limit' => (int)$limit,
+                'offset' => (int)$offset ?: 0,
             ]));
-            echo 'o: ', $offset, ' - ', count($entities), PHP_EOL;
 
             /** @var stdClass $entity */
             foreach($entities as $entity) {
@@ -210,6 +229,7 @@ class Api
     /**
      * @throws ApiException
      * @throws JsonException
+     * @throws HttpException
      * @throws CurlException
      */
     public function __call($name, $arguments)
@@ -222,11 +242,15 @@ class Api
                 return $this->getEntity($entityName, $arguments[0]);
 
             } elseif (isset($this->entities[$entityName])) {
-                return $this->getEntitiesList(
-                    $this->entities[$entityName],
-                    isset($arguments[0]) ? $arguments[0] : [],
-                    isset($arguments[1]) ? $arguments[1] : null
-                );
+                var_dump($arguments);
+                $arguments = array_slice($arguments, 0, 3);
+                $filters = isset($arguments[0]) && is_array($arguments[0]) ? array_shift($arguments) : [];
+
+                $numericArguments = array_filter($arguments, 'is_numeric');
+                $limit = array_pop($numericArguments);
+                $offset = array_pop($numericArguments);
+
+                return $this->getEntitiesList($this->entities[$entityName], $filters, $offset, $limit);
 
             }
         }
@@ -237,8 +261,9 @@ class Api
     /**
      * @return stdClass
      * @throws ApiException
-     * @throws CurlException
      * @throws JsonException
+     * @throws HttpException
+     * @throws CurlException
      */
     public function getUser()
     {
@@ -249,9 +274,10 @@ class Api
      * @param string $method адреса методу
      * @param array $params POST-параметри
      * @return stdClass|array
-     * @throws CurlException
-     * @throws JsonException
      * @throws ApiException
+     * @throws JsonException
+     * @throws HttpException
+     * @throws CurlException
      */
     public function request($method, array $params = array())
     {
@@ -271,9 +297,10 @@ class Api
 
     /**
      * @return stdClass|array
-     * @throws CurlException
-     * @throws JsonException
      * @throws ApiException
+     * @throws JsonException
+     * @throws HttpException
+     * @throws CurlException
      */
     protected function execRequest()
     {
@@ -289,7 +316,7 @@ class Api
         $headers = substr($response, 0, $headersLength);
         $response = substr($response, $headersLength);
 
-        $answer = json_decode($response);
+        $answer = json_decode($response, $this->returnAssociative);
 
         if (null === $answer) {
             throw new JsonException($response);
@@ -301,7 +328,7 @@ class Api
         }
 
         if ($httpCode < 200 || $httpCode > 299) {
-            throw new ApiException('Waiting for 20x HTTP code, but receiving ' . $httpCode);
+            throw new HttpException($httpCode, $response);
         }
 
         $this->contentRange = $httpCode === 206 ? $this->parseContentRange($headers) : [];
@@ -329,6 +356,13 @@ class Api
     {
         return is_null($key) ? $this->contentRange :
             (isset($this->contentRange[$key]) ? $this->contentRange[$key] : null);
+    }
+
+    /** @return self */
+    public function setReturnAssociative($returnAssociative = true)
+    {
+        $this->returnAssociative = $returnAssociative;
+        return $this;
     }
 
     public function __destruct()

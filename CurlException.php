@@ -1,12 +1,11 @@
 <?php
 /**
- * @author Anton Berezhnoj <berejant@gmail.com>
  * @package kneu/api
  */
 
 namespace Kneu;
 
-class CurlException extends \Exception
+class CurlException extends TransportException
 {
     /**
      * @param resource $ch Resource of Curl

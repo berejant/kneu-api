@@ -1,19 +1,14 @@
 <?php
 /**
- * @author Anton Berezhnoj <berejant@gmail.com>
  * @package kneu/api
  */
 
 namespace Kneu;
 
-class JsonException extends \Exception
+class JsonException extends TransportException
 {
-    protected $response;
-
     public function __construct ($response)
     {
-        $this->response = $response;
-
         $code = json_last_error();
 
         if(function_exists('json_last_error_msg')) {
@@ -44,12 +39,6 @@ class JsonException extends \Exception
             }
         }
 
-        parent::__construct($message, $code);
+        parent::__construct($message, $code, null, $response);
     }
-
-    public function getResponse()
-    {
-        return $this->response;
-    }
-
 }
