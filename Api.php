@@ -69,6 +69,7 @@ class Api
         curl_setopt($this->ch, CURLOPT_HEADER, true);
         curl_setopt($this->ch, CURLOPT_TIMEOUT, 20);
         curl_setopt($this->ch, CURLOPT_CAINFO, __DIR__ . '/cacert.pem');
+        curl_setopt($this->ch, CURLOPT_ENCODING, '');
 
         $this->setAccessToken($accessToken);
     }
@@ -193,21 +194,36 @@ class Api
      * @throws HttpException
      * @throws CurlException
      */
-    protected function getEntitiesList($entityName, array $filters = [], $offset = 0, $limit = null)
+    protected function getEntitiesList($entityName, array $filters = [], $offset = null, $limit = null)
     {
-        if (!isset($limit) && isset($filters['limit'])) {
+        if (!is_null($limit)) {
+            $limit = (int)$limit;
+        } elseif (isset($filters['limit'])) {
             $limit = (int)$filters['limit'];
         }
 
-        if (!isset($offset) && isset($filters['offset'])) {
+        if (!is_null($offset)) {
+            $offset = (int)$offset;
+        } elseif (isset($filters['offset'])) {
             $offset = (int)$filters['offset'];
         }
 
+        if ($limit === 0) {
+            return;
+        }
+
         do {
-            $entities = $this->request($entityName . '?' . http_build_query($filters + [
-                'limit' => (int)$limit,
-                'offset' => (int)$offset ?: 0,
-            ]));
+            $queryString = http_build_query($filters + [
+                'limit' => $limit,
+                'offset' => $offset,
+            ]);
+            $uri = $entityName . ($queryString ? '?' . $queryString : '');
+
+            $entities = $this->request($uri);
+
+            if (!$entities) { // reach end of list
+                break;
+            }
 
             /** @var stdClass $entity */
             foreach($entities as $entity) {
@@ -270,7 +286,7 @@ class Api
     }
 
     /**
-     * @param string $method адреса методу
+     * @param string $uri адреса методу
      * @param array $params POST-параметри
      * @return stdClass|array
      * @throws ApiException
@@ -278,9 +294,9 @@ class Api
      * @throws HttpException
      * @throws CurlException
      */
-    public function request($method, array $params = array())
+    public function request($uri, array $params = array())
     {
-        $url = sprintf(self::API_URL, $method);
+        $url = sprintf(self::API_URL, $uri);
 
         curl_setopt($this->ch, CURLOPT_URL, $url);
 
@@ -337,7 +353,7 @@ class Api
 
     protected function parseContentRange($headers)
     {
-        $pattern = '#^Content-Range:\s*items\s*(?P<start>[0-9]+)-(?P<end>[0-9]+)/(?<total>[0-9]+)\s*$#mi';
+        $pattern = '#^Content-Range:\s*items\s*(?P<start>\d+)-(?P<end>\d+)/(?<total>\d+)\s*?$#mi';
 
         if (preg_match($pattern, $headers, $match)) {
             unset($match[0], $match[1], $match[2], $match[3], $match[4]);
