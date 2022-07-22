@@ -8,8 +8,8 @@ HOST: https://auth.kneu.edu.ua/api/
  * RESTful API - надає інформацію для інших програмних продуктів КНЕУ стосовно структури університету: факультети, кафедри, викладачі, спеціальності, студенти, користувачі.
 
 Для полегшення реалізації інтеграції із веб-сервісами було розроблено наступні додатки:
- * [PHP client for KNEU RESTful API Service](https://github.com/berejant/kneu-api) - PHP-бібліотека для роботи з КНЕУ RESTful API та OAuth 2.0. Документація до бібліотеки розміщена в файлі README.md в Github-репозиторії.
- * [JS client for KNEU RESTful API Service](https://www.npmjs.com/package/kneu-api-client) - JS-бібліотека для роботи з КНЕУ RESTful API та OAuth 2.0. Документація до бібліотеки розміщена в файлі README.md в Github-репозиторії.
+ * [PHP client for KNEU RESTful API Service](https://github.com/berejant/kneu-api) - PHP-бібліотека для роботи з КНЕУ RESTful API та OAuth 2.0.
+ * [JS client for KNEU RESTful API Service](https://github.com/berejant/kneu-api-js-client) - JS-бібліотека для роботи з КНЕУ RESTful API.
  * [KNEU Laravel Socialite](https://github.com/berejant/kneu-laravel-socialite-provider) - пакет, який реалізує авторизацію через сервер КНЕУ в Laravel-додатках.
 
 # OAuth 2.0
@@ -41,11 +41,11 @@ HOST: https://auth.kneu.edu.ua/api/
  У випадку, якщо користувач раніше вже пройшов авторизацію на веб-сайті КНЕУ – його буде одразу переадресовано на `redirect_uri` без будь-яких затримок та додаткових діалогів.
  Також, замість логіну та паролю, користувач може використати аккаунт в сторонньому сервісі або соціальній мережі (Google, Yandex, Facebook, Вконтакте, Mailru, Twitter тощо).
  3. Після успішної авторизації браузер користувача буде переадресовано за адресою `redirect_uri`, вказаної при відкритті діалогу. При цьому, для отримання доступу в GET-параметрах буде передано параметр code:
-    > `redirect_uri`?`code`={code}[&`scope`={scope}]
+    > `redirect_uri`?`code`={code}[&`state`={state}]
 
     де:
     * `code` - `string` - спеціальний код для отримання `access_token`. Може бути використано протягом двох хвилин.
-    * `scope` - `string` - optional. значення параметра scope, яке було передано на кроці 1.
+    * `state` - `string` - optional. значення параметра scope, яке було передано на кроці 1.
  4. Отримання access_token. Для цього необхідно здійснити POST запит за адресою
     > https://auth.kneu.edu.ua/oauth/token
 
@@ -70,7 +70,7 @@ HOST: https://auth.kneu.edu.ua/api/
     ```
     Значення параметру `access_token` потрібно буде використати для роботи з RESTful API.
 
-    В PHP-бібліотеці цей крок автоматизується за допомогою методу [**\Kneu\Api::oauthToken()**](https://github.com/berejant/kneu-api#oauthtokenclient_id-client_secret-code-redirect_uri)
+    В PHP-бібліотеці цей крок автоматизується за допомогою методу [**Kneu\Api::createWithOauthToken**](https://github.com/berejant/kneu-api/blob/master/README.md#api--kneuapicreatewithoauthtokenclient_id-client_secret-code-redirect_uri-kneuapi)
 
 ## Авторизація сервера
 Для авторизації серверу стороннього додатку необхідно здійснити POST-запит за адресою
@@ -94,7 +94,7 @@ POST-параметри:
 ```
 Значення параметру `access_token` потрібно буде використати для роботи з RESTful API.
 
-В PHP-бібліотеці цей крок автоматизується за допомогою методу [**\Kneu\Api::serverToken()**](https://github.com/berejant/kneu-api#servertokenclient_id-client_secret)
+В PHP-бібліотеці цей крок автоматизується за допомогою методу [**Kneu\Api::createWithServerToken**](https://github.com/berejant/kneu-api/blob/master/README.md#api--kneuapicreatewithservertokenclient_id-client_secret-kneuapi)
 
 ## Міжсайтовий вихід із системи
 Після завершення сесії користувача в сторонньому додатку (дія "logout", "вихід") необхідно викликати процедуру завершення сесії на стороні сайту КНЕУ. Це допоможе уникнути конфлікту: коли користувач продовжує бути авторизованим на сайті КНЕУ, в той час в сторонньому додатку - вже вийшов із системи.
