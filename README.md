@@ -12,7 +12,7 @@ This PHP Library provide programmatic user-friendly interface to work with [the 
 
 ## Опис методів
 
-## `$api = Kneu\Api::createWithOauthToken($client_id, $client_secret, $code, $redirect_uri)`
+## `$api = Kneu\Api::createWithOauthToken($client_id, $client_secret, $code, $redirect_uri): Kneu\Api`
 
 Завершити процедуру oauth - отримати access_token на основі отриманого від клієнта значення code.
 
@@ -32,7 +32,7 @@ This PHP Library provide programmatic user-friendly interface to work with [the 
    * `Kneu\JsonException`
    * `Kneu\ApiException`
 
-## `$api = Kneu\Api::createWithServerToken($client_id, $client_secret)`
+## `$api = Kneu\Api::createWithServerToken($client_id, $client_secret): Kneu\Api`
 
 Авторизація стороннього серверу для роботи з API (імпорту списку факультетів, кафедр, викладачів, академічних груп, спеціальностей).
 
