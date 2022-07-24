@@ -120,6 +120,14 @@ class Api
     }
 
     /**
+     * @return string|null
+     */
+    public function getAccessToken()
+    {
+        return $this->accessToken;
+    }
+
+    /**
      * Завершити процедуру oauth - отримати access_token для роботи з API
      * @param int $client_id ID додатку
      * @param string $client_secret Секрет додатку

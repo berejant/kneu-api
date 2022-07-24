@@ -21,11 +21,7 @@ This PHP Library provide programmatic user-friendly interface to work with [the 
    * `$client_secret` — `string` — Секрет додатку, який надається адміністратором
    * `$code` — `string` — Код отриманий з браузера користувача
    * `$redirect_uri` — `string` — URL стороннього додатку (домену), на який була виконана переадресація з параметром code.
- * **Returns:** `\stdClass` - містить властивості:
-   * **access_token** - `string` - безпосередньо код access_token
-   * **token_type** - `string` - "Bearer"
-   * **expire_in** - `integer` -  час життя access_token в секундах
-   * **user_id** - `integer` - ідентифікатор користувача
+ * **Returns:** `\Kneu\Api` - об'єкт классу `\Kneu\Api` для подальших викликів API
 
  * **Exceptions:**
    * `Kneu\CurlException`
@@ -39,12 +35,38 @@ This PHP Library provide programmatic user-friendly interface to work with [the 
  * **Parameters:**
    * `$client_id` — `int` — ID додатку, який надається адміністратором
    * `$client_secret` — `string` — Секрет додатку, який надається адміністратором
- * **Returns:** `\stdClass` - аналогічно до результату виконання oauthToken(), властивість **user_id** відсутня
- * **Exceptions:**
-   * `Kneu\CurlException`
-   * `Kneu\JsonException`
-   * `Kneu\ApiException`
+ * **Returns:** `\stdClass` - об'єкт классу `\Kneu\Api` для подальших викликів API
 
+## `getAccessToken(): ?string`
+Отримати access_token, який був отриманний після createWithServerToken або createWithOauthToken.
+
+## `setReturnAssociative()`
+За замовчуванням, методи повертають дані як об'єкти stdClass.
+Метод `setReturnAssociative()` дозволяє змінити тип данних на асоціативний массив.
+
+```php
+$facultyStdClassObject = $api->getFaculty(1);
+var_dump($facultyStdClassObject, $facultyStdClassObject->name);
+<<<DUMP
+object(stdClass)#2 (2) {
+  ["id"]=> int(1)
+  ["name"]=> string(44) "Економіки та управління"
+}
+string(44) "Економіки та управління"
+DUMP;
+
+$api->setReturnAssociative();
+$facultyAssocArray = $api->getFaculty(1);
+var_dump($facultyAssocArray, $facultyAssocArray['name']); =>
+<<<DUMP
+array(2) {
+  ["id"]=> int(1)
+  ["name"]=> string(44) "Економіки та управління"
+}
+string(44) "Економіки та управління"
+DUMP;
+
+```
 
 ## `getUser()`
 
@@ -71,6 +93,15 @@ This PHP Library provide programmatic user-friendly interface to work with [the 
 $api->getFaculties();
 $api->getFaculties($limit);
 $api->getFaculties($offset, $limit);
+<<<EXAMPLE
+[
+    {
+        "id": 1,
+        "name": "Економіки та управління"
+    },
+    ...
+]
+EXAMPLE;
 ```
 
 ## `getDepartments([array $filters = [],] [[integer $offset = null,] integer $limit = null]): Generator`
@@ -90,6 +121,30 @@ $api->getDepartments($filters, $limit);
 $api->getDepartments($filters, $offset, $limit);
 $api->getDepartments($offset, $limit);
 $api->getDepartments($limit);
+
+<<<EXAMPLE
+[
+    {
+        "id": 53,
+        "faculty_id": 3,
+        "name": "Адміністративного та фінансового права",
+        "faculty": {
+            "id": 3,
+            "name": "Юридичний інститут"
+        }
+    },
+    {
+        "id": 57,
+        "faculty_id": 3,
+        "name": "Іноземних мов юридичного інституту",
+        "faculty": {
+            "id": 3,
+            "name": "Юридичний інститут"
+        }
+    },
+    ...
+]
+EXAMPLE;
 
 ```
 
@@ -113,6 +168,31 @@ $api->getTeachers($filters, $offset, $limit);
 $api->getTeachers($offset, $limit);
 $api->getTeachers($limit);
 
+<<<EXAMPLE
+[
+    {
+        "id": 1105,
+        "department_id": 21,
+        "name": "Іваненко Іван Іванович",
+        "first_name": "Іван",
+        "middle_name": "Іванович",
+        "last_name": "Іваненко",
+        "image_url": "https:\/\/kneu.edu.ua\/files\/teacher\/teacher_photo\/thumbnail_1113333.jpg",
+        "user": {
+            "id": 5019,
+            "login": "example@gmail.com"
+        },
+        "department": {
+            "id": 21,
+            "faculty_id": 3,
+            "name": "Цивільного та трудового права"
+        }
+    },
+    ...
+]
+EXAMPLE;
+
+
 ```
 ## `getSpecialties([array $filters = [],] [[integer $offset = null,] integer $limit = null]): Generator`
 Дозволяє отримати перелік спеціальностей. Надає перелік:
@@ -130,6 +210,32 @@ $api->getSpecialties($filters, $limit);
 $api->getSpecialties($filters, $offset, $limit);
 $api->getSpecialties($offset, $limit);
 $api->getSpecialties($limit);
+<<<EXAMPLE
+[
+     {
+        "id": 131,
+        "faculty_id": 9,
+        "code": "6701",
+        "name": "Безпепека інформаційних і комунікаційних систем",
+        "faculty": {
+            "id": 9,
+            "name": "Інститут інформаційних технологій в економіці"
+        }
+    },
+    {
+        "id": 173,
+        "faculty_id": 9,
+        "code": "6.051",
+        "name": "Економіка",
+        "faculty": {
+            "id": 9,
+            "name": "Інститут інформаційних технологій в економіці"
+        }
+    },
+    ...
+]
+EXAMPLE;
+
  ```
 
 ## `getGroups([array $filters = [],] [[integer $offset = null,] integer $limit = null]): Generator`
@@ -148,6 +254,35 @@ $api->getGroups($filters, $limit);
 $api->getGroups($filters, $offset, $limit);
 $api->getGroups($offset, $limit);
 $api->getGroups($limit);
+<<<EXAMPLE
+[
+    {
+        "id": 13293,
+        "specialty_id": 33,
+        "course": 2,
+        "name": "ПР.-201",
+        "specialty": {
+            "id": 33,
+            "faculty_id": 18,
+            "code": "7.03040101",
+            "name": "Правознавство"
+        }
+    },
+    {
+        "id": 13297,
+        "specialty_id": 36,
+        "course": 2,
+        "name": "ОА.-201",
+        "specialty": {
+            "id": 36,
+            "faculty_id": 18,
+            "code": "7.03050901",
+            "name": "Облік і аудит"
+        }
+    }
+    ...
+]
+EXAMPLE;
 ```
 
 ## `getStudents([array $filters = [],] [[integer $offset = null,] integer $limit = null]): Generator`
@@ -168,10 +303,33 @@ $api->getStudents($filters, $offset, $limit);
 $api->getStudents($offset, $limit);
 $api->getStudents($limit);
 
+<<<EXAMPLE
+[
+    {
+      "id": 444,
+      "group_id": 123,
+      "gradebook_id": "999999",
+      "sex": "male",
+      "name": "Іваненко Павло Володимирович",
+      "first_name": "Павло",
+      "middle_name": "Володимирович",
+      "last_name": "Іваненко",
+      "birthdate": "1992-07-13",
+      "user": {
+         "id": 32664,
+         "login": "example@gmail.com"
+      }
+    },
+    ...
+]
+EXAMPLE;
+
+
 ```
 
  * **Parameters:**
    * `$filters` — `array` — фільтр для вибірки певних об'єктів
+   * `$offset` — `integer` — зсув об'єктів у видачі. Аналог SQL LIMIT [offset], [limit];
    * `$limit` — `integer` — кількість об'єктів у видачі (MAX = 2000). Аналог SQL LIMIT [offset], [limit];
  * **Returns:** `array`
  * **Exceptions:**
@@ -304,6 +462,15 @@ if('student' == $user->type) {
       ["first_name"] => string(4) "Іван"
       ["middle_name"] => string(8) "Іванович"
       ["last_name"] => string(6) "Іванов"
+      ["user"]=> object(stdClass)#5 (2) {
+         ["id"] => int(5019)
+         ["login"] => string(19) "example@gmail.com"
+      }
+      ["department"]=> object(stdClass)#6 (3) {
+         ["id"] => int(21)
+         ["faculty_id"] => int(3)
+         ["name"] => string(55) "Цивільного та трудового права"
+      }
     }
     */
 
@@ -314,6 +481,10 @@ if('student' == $user->type) {
       ["id"] => int(99)
       ["faculty_id"] => int(9)
       ["name"] => string(61) "Інформаційних систем в економіці"
+      ["faculty"]=> object(stdClass)#3 (2) {
+        ["id"] => int(3)
+        ["name"] => string(35) "Юридичний інститут"
+      }
     }
     */
 ```
