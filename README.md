@@ -65,23 +65,110 @@ This PHP Library provide programmatic user-friendly interface to work with [the 
    * **department_id** - `null|integer` - ідентифікатор кафедри, до якої належить викладач
    * **sex** - `null|enum("male", "female")` - Стать (чоловік/жінка), доступно лише для студентів
 
-## `getFaculties(array $filters = [], integer $limit = null): Generator`
+## `getFaculties([array $filters = [],] [[integer $offset = null,] integer $limit = null]): Generator`
 Отримати перелік факультетів
+```php
+$api->getFaculties();
+$api->getFaculties($limit);
+$api->getFaculties($offset, $limit);
+```
 
-## `getDepartments(array $filters = [], integer $limit = null): Generator`
+## `getDepartments([array $filters = [],] [[integer $offset = null,] integer $limit = null]): Generator`
 Отримати перелік кафедр
+Дозволяє отримати перелік кафедр. Надає перелік:
+- всіх кафедр відсортованних за id.
+- кафедр вибраного факультету `faculty_id` відсортованних за назвою.
 
-## `getTeachers(array $filters = [], integer $limit = null): Generator`
-Отримати перелік викладачів.
+Об'єкт Кафедра надається разом з даними по зв'язанному об'єкту Факультет.
+
+
+```php
+$api->getDepartments(); // all
+$api->getDepartments(['faculty_id' => 999]); // by faculty id
+$api->getDepartments($filters);
+$api->getDepartments($filters, $limit);
+$api->getDepartments($filters, $offset, $limit);
+$api->getDepartments($offset, $limit);
+$api->getDepartments($limit);
+
+```
+
+## `getTeachers([array $filters = [],] [[integer $offset = null,] integer $limit = null]): Generator`
+Дозволяє отримати перелік викладачів. Надає перелік:
+- всіх викладачів відсортаванних за id.
+- викладачів певного факультету `faculty_id` або кафедри `department_id` в алфавітному порядку за прізвищем.
+  Об'єкт викладач надається разом даними зв'язаних об'єктів Кафедра та Користувач (User).
+
+Увага! Обєкт User є необов'язковий. Присутний лише в разі, коли викладач вже зар'єструвався на сайті.
+
 Внутрішня реалізація метода автоматично робить потрібну кількисть запитів до сервера, щоб отримати повний список викладачів.
 
-## `getSpecialties(array $filters = [], integer $limit = null): Generator`
-Отримати перелік спеціальностей
+```php
+$api->getTeachers(); // all teachers
+$api->getTeachers(['faculty_id' => 999]); // by faculty
+$api->getTeachers(['department_id' => 999]); // by department
+$api->getTeachers($filters);
+$api->getTeachers($filters, $limit);
+$api->getTeachers($filters, $offset, $limit);
+$api->getTeachers($offset, $limit);
+$api->getTeachers($limit);
+
+```
+## `getSpecialties([array $filters = [],] [[integer $offset = null,] integer $limit = null]): Generator`
+Дозволяє отримати перелік спеціальностей. Надає перелік:
+- всіх спеціальностей сортованних за id
+- спеціальностей певного факультету `faculty_id` сортованних за назвою.
+
+Надається разом із даними зв'язаного об'єкту Факультет.
 Внутрішня реалізація метода автоматично робить потрібну кількисть запитів до сервера, щоб отримати повний список спеціальностей.
 
-## `getGroups(array $filters = [], integer $limit = null): Generator`
-Отримати перелік академічних груп
+```php
+$api->getSpecialties(); // all specialties
+$api->getSpecialties(['faculty_id' => 999]); // by faculty
+$api->getSpecialties($filters);
+$api->getSpecialties($filters, $limit);
+$api->getSpecialties($filters, $offset, $limit);
+$api->getSpecialties($offset, $limit);
+$api->getSpecialties($limit);
+ ```
+
+## `getGroups([array $filters = [],] [[integer $offset = null,] integer $limit = null]): Generator`
+Дозволяє отримати перелік академічних груп. Надає перелік:
+- всіх академічних груп відсортованних за id;
+- академичніних груп певної спеціальності `specialty_id` або факультету `faculty_id` відсортованних за назвою спеціальності та назвою групи
+
+Об'єкт група надається разом із зв'заним об'єктом спеціальність.
+
+```php
+$api->getGroups(); // all groups
+$api->getGroups(['faculty_id' => 999]); // by faculty
+$api->getGroups(['specialty_id' => 999]); // by specialty
+$api->getGroups($filters);
+$api->getGroups($filters, $limit);
+$api->getGroups($filters, $offset, $limit);
+$api->getGroups($offset, $limit);
+$api->getGroups($limit);
+```
+
+## `getStudents([array $filters = [],] [[integer $offset = null,] integer $limit = null]): Generator`
+Дозволяє отримати перелік студентів. Надає перелік:
+- всіх студентів, відсортованних за id
+- студентів певної академічної групи `group_id` підсортованих в алфавітному порядку за прізвищем
+
+Якщо студент зарєстрованний на сайті, додатково до додається інформацію про звязанну сутність користувач (User).
+Якщо студент не зарєстрованний на сайті - інформація про User відсутня у результаті.
 Внутрішня реалізація метода автоматично робить потрібну кількисть запитів до сервера, щоб отримати повний список груп.
+
+```php
+$api->getStudents(); // all students
+$api->getStudents(['group_id' => 999]); // by group and order by name 
+$api->getStudents($filters);
+$api->getStudents($filters, $limit);
+$api->getStudents($filters, $offset, $limit);
+$api->getStudents($offset, $limit);
+$api->getStudents($limit);
+
+```
 
  * **Parameters:**
    * `$filters` — `array` — фільтр для вибірки певних об'єктів
@@ -240,10 +327,23 @@ require __DIR__ . '/vendor/autoload.php';
 $api = new Kneu\Api::createWithServerToken(__CLIENT_ID__, __CLIENT_SECRET__)
 
 try {
-     /** @var stdClass $teacher */
-     foreach($api->getTeachers() as $teacher) {
+
+     foreach($api->getDepartments(['faculty_id' => 3]) as $teacher) {
          // do anything with $teacher...
      }
+     
+
+     /** @var stdClass $teacher */
+     foreach($api->getTeachers(['department_id' => 21]) as $teacher) {
+         // do anything with $teacher...
+     }
+     
+     
+     /** @var stdClass $student */
+     foreach($api->getStudents(['group_id' => 17867]) as $student) {
+         // do anything with $teacher...
+     }
+
 
 /* Обробка помилок - або кожну помилку окремо або один єдиний блок catch(\Exception $e) */
 } catch (\Kneu\CurlException $e) {
