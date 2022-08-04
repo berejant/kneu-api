@@ -493,7 +493,7 @@ if('student' == $user->type) {
 ```php
 require __DIR__ . '/vendor/autoload.php';
 
-$api = new Kneu\Api::createWithServerToken(__CLIENT_ID__, __CLIENT_SECRET__)
+$api = Kneu\Api::createWithServerToken(__CLIENT_ID__, "__CLIENT_SECRET__")
 
 try {
 
