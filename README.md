@@ -388,8 +388,6 @@ EXAMPLE;
 ```php
 require __DIR__ . '/vendor/autoload.php';
 
-$api = new Kneu\Api;
-
 $api = Kneu\Api::createWithOauthToken(__CLIENT_ID__, __CLIENT_SECRET__, filter_input(INPUT_GET, 'code'), $redirect_uri);
 /*
     $redirect_uri - як правило це current url без параметрів code та scope.
