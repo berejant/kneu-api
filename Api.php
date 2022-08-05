@@ -143,7 +143,7 @@ class Api
     {
         curl_setopt($this->ch, CURLOPT_URL, self::TOKEN_URL);
         curl_setopt($this->ch, CURLOPT_POST, true);
-        curl_setopt($this->ch, CURLOPT_POSTFIELDS, http_build_query([
+        curl_setopt($this->ch, CURLOPT_POSTFIELDS, $this->buildQuery([
             'client_id' => $client_id,
             'client_secret' => $client_secret,
             'grant_type' => 'authorization_code',
@@ -172,7 +172,7 @@ class Api
     {
         curl_setopt($this->ch, CURLOPT_URL, self::TOKEN_URL);
         curl_setopt($this->ch, CURLOPT_POST, true);
-        curl_setopt($this->ch, CURLOPT_POSTFIELDS, http_build_query([
+        curl_setopt($this->ch, CURLOPT_POSTFIELDS, $this->buildQuery([
             'client_id' => $client_id,
             'client_secret' => $client_secret,
             'grant_type' => 'client_credentials',
@@ -221,7 +221,7 @@ class Api
         }
 
         do {
-            $queryString = http_build_query($filters + [
+            $queryString = $this->buildQuery($filters + [
                 'limit' => $limit,
                 'offset' => $offset,
             ]);
@@ -310,7 +310,7 @@ class Api
 
         if ($params) {
             curl_setopt($this->ch, CURLOPT_POST, true);
-            curl_setopt($this->ch, CURLOPT_POSTFIELDS, http_build_query($params));
+            curl_setopt($this->ch, CURLOPT_POSTFIELDS, $this->buildQuery($params));
         } else {
             curl_setopt($this->ch, CURLOPT_HTTPGET, true);
         }
@@ -391,5 +391,13 @@ class Api
     public function __destruct()
     {
         curl_close($this->ch);
+    }
+
+    /**
+     * @param array|object $params
+     * @return string
+     */
+    protected function buildQuery($params) {
+        return http_build_query($params,'', '&', PHP_QUERY_RFC1738);
     }
 }
