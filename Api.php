@@ -14,12 +14,12 @@ require_once __DIR__ . '/JsonException.php';
 /**
  * Class Api
  * @package Kneu
- * @method Generator getFaculties   (int|array $filtersOrOffsetOrLimit = [], integer $offsetOrLimit, integer $limit = null))  Отримати список факультетів
- * @method Generator getDepartments (int|array $filtersOrOffsetOrLimit = [], integer $offsetOrLimit, integer $limit = null))  Отримати список кафедр
- * @method Generator getTeachers    (int|array $filtersOrOffsetOrLimit = [], integer $offsetOrLimit, integer $limit = null))  Отримати список викладачів
- * @method Generator getSpecialties (int|array $filtersOrOffsetOrLimit = [], integer $offsetOrLimit, integer $limit = null))  Отримати список спеціальностей
- * @method Generator getGroups      (int|array $filtersOrOffsetOrLimit = [], integer $offsetOrLimit, integer $limit = null)  Отримати список груп
- * @method Generator getStudents    (int|array $filtersOrOffsetOrLimit = [], integer $offsetOrLimit, integer $limit = null))  Отримати список студентів
+ * @method Generator getFaculties   (int|array $filtersOrOffsetOrLimit = [], integer $offsetOrLimit = null, integer $limit = null))  Отримати список факультетів
+ * @method Generator getDepartments (int|array $filtersOrOffsetOrLimit = [], integer $offsetOrLimit = null, integer $limit = null))  Отримати список кафедр
+ * @method Generator getTeachers    (int|array $filtersOrOffsetOrLimit = [], integer $offsetOrLimit = null, integer $limit = null))  Отримати список викладачів
+ * @method Generator getSpecialties (int|array $filtersOrOffsetOrLimit = [], integer $offsetOrLimit = null, integer $limit = null))  Отримати список спеціальностей
+ * @method Generator getGroups      (int|array $filtersOrOffsetOrLimit = [], integer $offsetOrLimit = null, integer $limit = null)  Отримати список груп
+ * @method Generator getStudents    (int|array $filtersOrOffsetOrLimit = [], integer $offsetOrLimit = null, integer $limit = null))  Отримати список студентів
  * @method stdClass getFaculty    (integer $id) Отримати факультет зі вказаним id
  * @method stdClass getDepartment (integer $id) Отримати кафедру зі вказаним id
  * @method stdClass getTeacher    (integer $id) Отримати викладача зі вказаним id

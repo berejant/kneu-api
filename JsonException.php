@@ -39,6 +39,6 @@ class JsonException extends TransportException
             }
         }
 
-        parent::__construct($message, $code, null, $response);
+        parent::__construct('Response JSON: ' . $message, $code, null, $response);
     }
 }

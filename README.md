@@ -397,7 +397,7 @@ $api = Kneu\Api::createWithOauthToken(__CLIENT_ID__, __CLIENT_SECRET__, filter_i
     $isSsl = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] != 'off')
           || ($_SERVER['SERVER_PORT'] ?? $_SERVER['HTTP_X_FORWARDED_PORT'] ?? null) == 443;
 
-    $redirect_uri = 'http' . ($isSsl ? 's' : '') . '//' . $_SERVER['HTTP_HOST']
+    $redirect_uri = 'http' . ($isSsl ? 's' : '') . '://' . $_SERVER['HTTP_HOST']
                   . rtrim(preg_replace('#(code|state)=.*?($|\&)#', '', $_SERVER['REQUEST_URI']), '?');
 */
 
