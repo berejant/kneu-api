@@ -1,21 +1,42 @@
 {
     "name": "kneu/api",
-    "description": "PHP client for KNEU REST API Service",
+    "description": "PHP client for KNEU REST API Service (OAuth 2.0 and REST API of auth.kneu.edu.ua) over PSR-18",
     "type": "library",
     "license": "MIT",
+    "keywords": ["kneu", "api", "oauth2", "psr-18"],
     "authors": [
         {
             "name": "Anton Berezhnoj",
             "email": "berejant@gmail.com"
         }
     ],
-    "minimum-stability": "stable",
     "require": {
-        "php": ">=5.5",
-        "ext-curl": "*",
-        "ext-json": "*"
+        "php": "^8.1",
+        "ext-json": "*",
+        "psr/http-client": "^1.0",
+        "psr/http-factory": "^1.0",
+        "psr/http-message": "^1.0 || ^2.0"
+    },
+    "require-dev": {
+        "nyholm/psr7": "^1.8",
+        "phpunit/phpunit": "^10.5 || ^11.5 || ^12.0"
+    },
+    "suggest": {
+        "symfony/http-client": "PSR-18 client (Symfony\\Component\\HttpClient\\Psr18Client)",
+        "guzzlehttp/guzzle": "PSR-18 client and PSR-17 factories",
+        "nyholm/psr7": "PSR-17 factories"
     },
     "autoload": {
-        "psr-4": { "Kneu\\": "" }
+        "psr-4": {
+            "Kneu\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Kneu\\Tests\\": "tests/"
+        }
+    },
+    "scripts": {
+        "test": "phpunit"
     }
 }

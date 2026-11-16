@@ -10,37 +10,83 @@ This PHP Library provide programmatic user-friendly interface to work with [the 
 
     composer require kneu/api
 
+Потрібен PHP 8.1 або новіший. Власного HTTP-транспорту бібліотека не має: запити надсилає будь-який
+[PSR-18](https://www.php-fig.org/psr/psr-18/) клієнт, а будують [PSR-17](https://www.php-fig.org/psr/psr-17/) фабрики.
+Якщо у проекті їх ще немає, можна взяти, наприклад, `symfony/http-client` і `nyholm/psr7`:
+
+    composer require kneu/api symfony/http-client nyholm/psr7
+
+```php
+use Nyholm\Psr7\Factory\Psr17Factory;
+use Symfony\Component\HttpClient\HttpClient;
+use Symfony\Component\HttpClient\Psr18Client;
+
+$psr17Factory = new Psr17Factory(); // і RequestFactoryInterface, і StreamFactoryInterface
+$httpClient = new Psr18Client(HttpClient::create(['max_duration' => 20]), $psr17Factory, $psr17Factory);
+
+$api = Kneu\Api::createWithServerToken($httpClient, $psr17Factory, $psr17Factory, __CLIENT_ID__, '__CLIENT_SECRET__');
+```
+
+З Guzzle 7: `$httpClient = new GuzzleHttp\Client(['timeout' => 20])`, фабрики — `new GuzzleHttp\Psr7\HttpFactory()`.
+
+Таймаути, проксі й сертифікати центрів сертифікації (CA) — налаштування HTTP-клієнта: бібліотека більше не постачає
+власний `cacert.pem`, тож перевірку TLS виконує клієнт зі своїм (як правило, системним) сховищем CA.
+
+Оновлюєтеся з 1.x? Див. [Оновлення з 1.x до 2.0](#оновлення-з-1x-до-20).
+
 ## Опис методів
 
-## `$api = Kneu\Api::createWithOauthToken($client_id, $client_secret, $code, $redirect_uri): Kneu\Api`
+## `new Kneu\Api($httpClient, $requestFactory, $streamFactory, ?string $accessToken = null)`
+
+Створити клієнт API без авторизації або з access_token, отриманим раніше.
+
+ * **Parameters:**
+   * `$httpClient` — `Psr\Http\Client\ClientInterface` — PSR-18 клієнт, яким надсилаються всі запити
+   * `$requestFactory` — `Psr\Http\Message\RequestFactoryInterface` — PSR-17 фабрика запитів
+   * `$streamFactory` — `Psr\Http\Message\StreamFactoryInterface` — PSR-17 фабрика потоків (тіла POST-запитів)
+   * `$accessToken` — `string|null` — access_token для заголовка `Authorization: Bearer`
+
+## `$api = Kneu\Api::createWithOauthToken($httpClient, $requestFactory, $streamFactory, $client_id, $client_secret, $code, $redirect_uri): Kneu\Api`
 
 Завершити процедуру oauth - отримати access_token на основі отриманого від клієнта значення code.
 
  * **Parameters:**
-   * `$client_id` — `int` — ID додатку, який надається адміністратором
+   * `$httpClient`, `$requestFactory`, `$streamFactory` — як у конструкторі
+   * `$client_id` — `int|string` — ID додатку, який надається адміністратором
    * `$client_secret` — `string` — Секрет додатку, який надається адміністратором
    * `$code` — `string` — Код отриманий з браузера користувача
    * `$redirect_uri` — `string` — URL стороннього додатку (домену), на який була виконана переадресація з параметром code.
  * **Returns:** `\Kneu\Api` - об'єкт классу `\Kneu\Api` для подальших викликів API
 
  * **Exceptions:**
-   * `Kneu\CurlException`
-   * `Kneu\JsonException`
    * `Kneu\ApiException`
+   * `Kneu\TransportException` (`Kneu\HttpException`, `Kneu\JsonException`, `Kneu\CurlException`)
 
-## `$api = Kneu\Api::createWithServerToken($client_id, $client_secret): Kneu\Api`
+## `$api = Kneu\Api::createWithServerToken($httpClient, $requestFactory, $streamFactory, $client_id, $client_secret): Kneu\Api`
 
 Авторизація стороннього серверу для роботи з API (імпорту списку факультетів, кафедр, викладачів, академічних груп, спеціальностей).
 
  * **Parameters:**
-   * `$client_id` — `int` — ID додатку, який надається адміністратором
+   * `$httpClient`, `$requestFactory`, `$streamFactory` — як у конструкторі
+   * `$client_id` — `int|string` — ID додатку, який надається адміністратором
    * `$client_secret` — `string` — Секрет додатку, який надається адміністратором
- * **Returns:** `\stdClass` - об'єкт классу `\Kneu\Api` для подальших викликів API
+ * **Returns:** `\Kneu\Api` - об'єкт классу `\Kneu\Api` для подальших викликів API
+ * **Exceptions:**
+   * `Kneu\ApiException`
+   * `Kneu\TransportException` (`Kneu\HttpException`, `Kneu\JsonException`, `Kneu\CurlException`)
+
+## `oauthToken($client_id, $client_secret, $code, $redirect_uri)`, `serverToken($client_id, $client_secret)`
+
+Те саме для вже створеного об'єкта: отримати access_token і встановити його. Повертають відповідь сервера
+(`access_token`, `token_type`, `expires_in` …).
+
+## `setAccessToken(?string $accessToken): void`
+Встановити access_token, отриманий раніше (наприклад, збережений у сесії).
 
 ## `getAccessToken(): ?string`
 Отримати access_token, який був отриманний після createWithServerToken або createWithOauthToken.
 
-## `setReturnAssociative()`
+## `setReturnAssociative(bool $returnAssociative = true): static`
 За замовчуванням, методи повертають дані як об'єкти stdClass.
 Метод `setReturnAssociative()` дозволяє змінити тип данних на асоціативний массив.
 
@@ -89,6 +135,9 @@ DUMP;
 
 ## `getFaculties([array $filters = [],] [[integer $offset = null,] integer $limit = null]): Generator`
 Отримати перелік факультетів
+
+Усі методи `get<Сутності>()` повертають генератор: запити надсилаються під час ітерації, сторінка за сторінкою
+(за заголовком `Content-Range`). Тому й винятки кидає ітерація, а не сам виклик методу.
 ```php
 $api->getFaculties();
 $api->getFaculties($limit);
@@ -331,44 +380,42 @@ EXAMPLE;
    * `$filters` — `array` — фільтр для вибірки певних об'єктів
    * `$offset` — `integer` — зсув об'єктів у видачі. Аналог SQL LIMIT [offset], [limit];
    * `$limit` — `integer` — кількість об'єктів у видачі (MAX = 2000). Аналог SQL LIMIT [offset], [limit];
- * **Returns:** `array`
+ * **Returns:** `Generator` — об'єкти `stdClass` (або масиви після `setReturnAssociative()`)
  * **Exceptions:**
-   * `Kneu\CurlException`
-   * `Kneu\JsonException`
    * `Kneu\ApiException`
+   * `Kneu\TransportException` (`Kneu\HttpException`, `Kneu\JsonException`, `Kneu\CurlException`)
 
-## `getFaculty(integer $id)`
+## `getFaculty(int $id): stdClass|array`
 Отримати факультет зі вказаним id
 
-## `getDepartment(integer $id)`
+## `getDepartment(int $id): stdClass|array`
 Отримати кафедру зі вказаним id
 
-## `getTeacher(integer $id)`
+## `getTeacher(int $id): stdClass|array`
 Отримати викладача зі вказаним id
 
-## `getSpecialty(integer $id)`
+## `getSpecialty(int $id): stdClass|array`
 Отримати спеціальність зі вказаним id
 
-## `getGroup(integer $id)`
+## `getGroup(int $id): stdClass|array`
 Отримати групу зі вказаним id
 
-## `getStudent(integer $id)`
+## `getStudent(int $id): stdClass|array`
 Отримати студента зі вказаним id
 
-## `request($method, array $params = array())`
+## `request(string $uri, array $params = []): stdClass|array`
 
 Виклик довільного API-методу.
 
  * **Parameters:**
-   * `$method` — `string` — адреса методу
-   * `$params` — `array` — POST параметри
+   * `$uri` — `string` — адреса методу відносно `https://auth.kneu.edu.ua/api/`
+   * `$params` — `array` — POST параметри (без них запит надсилається методом GET)
  * **Returns:** `\stdClass|array`
  * **Exceptions:**
-   * `Kneu\CurlException`
-   * `Kneu\JsonException`
    * `Kneu\ApiException`
+   * `Kneu\TransportException` (`Kneu\HttpException`, `Kneu\JsonException`, `Kneu\CurlException`)
 
-## `getContentRange($key)`
+## `getContentRange(?string $key = null): array|int|null`
 
 Дозволяє отримати Meta-інформацію про загальну кількість об'єктів певної сутності (для переліку викладачів, спеціальностей, факультетів тощо).
 Інформація надається із заголовку Content-Range, тому метод `getContentRange()` може надати інформацію лише після виконання методу (запиту) на отримання переліку об'єктів певної сутності.
@@ -388,7 +435,10 @@ EXAMPLE;
 ```php
 require __DIR__ . '/vendor/autoload.php';
 
-$api = Kneu\Api::createWithOauthToken(__CLIENT_ID__, __CLIENT_SECRET__, filter_input(INPUT_GET, 'code'), $redirect_uri);
+$psr17Factory = new Nyholm\Psr7\Factory\Psr17Factory();
+$httpClient = new Symfony\Component\HttpClient\Psr18Client(null, $psr17Factory, $psr17Factory);
+
+$api = Kneu\Api::createWithOauthToken($httpClient, $psr17Factory, $psr17Factory, __CLIENT_ID__, __CLIENT_SECRET__, filter_input(INPUT_GET, 'code'), $redirect_uri);
 /*
     $redirect_uri - як правило це current url без параметрів code та scope.
     Якщо використаний фреймворк не дозволяє побудувати штатними засобами $redirect_uri,
@@ -493,9 +543,11 @@ if('student' == $user->type) {
 ```php
 require __DIR__ . '/vendor/autoload.php';
 
-$api = Kneu\Api::createWithServerToken(__CLIENT_ID__, "__CLIENT_SECRET__")
+$psr17Factory = new Nyholm\Psr7\Factory\Psr17Factory();
+$httpClient = new Symfony\Component\HttpClient\Psr18Client(null, $psr17Factory, $psr17Factory);
 
 try {
+     $api = Kneu\Api::createWithServerToken($httpClient, $psr17Factory, $psr17Factory, __CLIENT_ID__, '__CLIENT_SECRET__');
 
      foreach($api->getDepartments(['faculty_id' => 3]) as $teacher) {
          // do anything with $teacher...
@@ -515,13 +567,16 @@ try {
 
 
 /* Обробка помилок - або кожну помилку окремо або один єдиний блок catch(\Exception $e) */
-} catch (\Kneu\CurlException $e) {
-    var_dump($e);
-
-} catch (\Kneu\JsonException $e) {
-    var_dump($e);
-
 } catch (\Kneu\ApiException $e) {
+    // сервер відповів помилкою: {"error": "...", "error_description": "..."}
+    var_dump($e->getMessage());
+
+} catch (\Kneu\HttpException $e) {
+    // HTTP-код поза 2xx
+    var_dump($e->getStatusCode(), $e->getResponse());
+
+} catch (\Kneu\TransportException $e) {
+    // немає відповіді (getPrevious() — виняток PSR-18 клієнта) або вона не JSON (JsonException)
     var_dump($e);
 
 /*  або замість трьох блоків catch - один, який перехоплює будь-які виключення Exception */
@@ -529,3 +584,62 @@ try {
     var_dump($e);
 }
 ```
+
+## Винятки
+
+| Клас | Коли |
+|---|---|
+| `Kneu\ApiException` | Відповідь — JSON з ключем `error` (за будь-якого HTTP-коду; повідомлення — `error_description` або `error`); у відповіді на запит токена немає `access_token` |
+| `Kneu\TransportException` | Абстрактний предок трьох наступних; `getResponse()` — тіло відповіді, якщо вона була |
+| `Kneu\HttpException` | HTTP-код поза 2xx без JSON-помилки; `getStatusCode()` (і `getCode()`) — код, `getResponse()` — тіло |
+| `Kneu\JsonException` | Тіло відповіді 2xx не вдалося розібрати як JSON, або це не об'єкт і не масив |
+| `Kneu\CurlException` | PSR-18 клієнт не отримав відповіді (мережа, DNS, TLS, таймаут); `getPrevious()` — його виняток. **Застарів:** ловіть `TransportException` |
+
+## Оновлення з 1.x до 2.0
+
+Код, який лише викликає методи `$api`, змінювати не треба: методи, їх аргументи, генератори з пагінацією за
+`Content-Range`, `setReturnAssociative()`, `getUser()`, `request()`, `getContentRange()` і класи винятків — ті самі.
+Змінюється створення об'єкта.
+
+```php
+// 1.x
+$api = Kneu\Api::createWithServerToken($clientId, $clientSecret);
+$api = Kneu\Api::createWithOauthToken($clientId, $clientSecret, $code, $redirectUri);
+$api = new Kneu\Api($accessToken);
+
+// 2.0
+$psr17Factory = new Nyholm\Psr7\Factory\Psr17Factory();
+$httpClient = new Symfony\Component\HttpClient\Psr18Client(
+    Symfony\Component\HttpClient\HttpClient::create(['max_duration' => 20]), // таймаут 1.x — 20 секунд на запит
+    $psr17Factory,
+    $psr17Factory,
+);
+
+$api = Kneu\Api::createWithServerToken($httpClient, $psr17Factory, $psr17Factory, $clientId, $clientSecret);
+$api = Kneu\Api::createWithOauthToken($httpClient, $psr17Factory, $psr17Factory, $clientId, $clientSecret, $code, $redirectUri);
+$api = new Kneu\Api($httpClient, $psr17Factory, $psr17Factory, $accessToken);
+```
+
+Що змінилося:
+
+* **Залежності.** PHP 8.1+; `psr/http-client`, `psr/http-factory`, `psr/http-message` замість `ext-curl`. Файл
+  `cacert.pem` вилучено: сертифікати перевіряє HTTP-клієнт. Таймаут (у 1.x — 20 секунд), проксі тощо теж
+  налаштовуються в ньому.
+* **Конструктор і фабрики** приймають PSR-18 клієнт і PSR-17 фабрики запитів і потоків (першими аргументами);
+  access_token у конструкторі — необов'язковий четвертий аргумент.
+* **Типи.** Методи `get<Сутності>()` і `get<Сутність>()` — тепер справжні методи замість `__call()` (невідомий метод —
+  `Error`, а не `BadMethodCallException`); `id`, `offset` і `limit` — `int`. `setAccessToken(?string): void`,
+  `setReturnAssociative(bool = true): static`.
+* **Винятки:**
+  * `CurlException` залишився підкласом `TransportException` і кидається на мережеві помилки PSR-18 клієнта
+    (`getPrevious()` — виняток клієнта), тож `catch (Kneu\CurlException …)` з коду 1.x працює. Клас застарів: ловіть
+    `Kneu\TransportException`; у 3.0 його буде вилучено.
+  * HTTP-код поза 2xx без JSON-помилки — завжди `HttpException`, навіть коли тіло не JSON (1.x на HTML-сторінку 502
+    кидав `JsonException`). Новий метод `HttpException::getStatusCode()`.
+  * JSON-помилку (`error`) помічено й у режимі `setReturnAssociative()` — `ApiException` (1.x у цьому режимі її
+    пропускав).
+  * Відповідь 2xx, яка не є JSON-об'єктом чи масивом (порожнє тіло, `null`, число, рядок) — `JsonException`; відповідь
+    на запит токена без `access_token` — `ApiException`.
+* **Пагінація:** `limit` і `offset`, передані у фільтрах (`getStudents(['offset' => 100])`), тепер зсуваються від
+  сторінки до сторінки, як і передані аргументами (1.x повторював їх у кожному запиті й отримував ту саму сторінку знову).
+* **Заголовки:** запити мають `Accept: application/json`; запит токена не надсилає попередній access_token.
