@@ -222,9 +222,9 @@ final class ApiTest extends TestCase
             4 => (object) ['id' => 5],
         ], iterator_to_array($teachers));
         self::assertSame([
-            'https://auth.kneu.edu.ua/api/teachers',
-            'https://auth.kneu.edu.ua/api/teachers?offset=2',
-            'https://auth.kneu.edu.ua/api/teachers?offset=4',
+            'https://auth.kneu.edu.ua/api/teacher',
+            'https://auth.kneu.edu.ua/api/teacher?offset=2',
+            'https://auth.kneu.edu.ua/api/teacher?offset=4',
         ], $this->client->urls());
         foreach ($this->client->requests as $request) {
             self::assertSame('Bearer token', $request->getHeaderLine('Authorization'));
@@ -246,8 +246,8 @@ final class ApiTest extends TestCase
 
         self::assertEquals([(object) ['id' => 11], (object) ['id' => 12], (object) ['id' => 13]], $departments);
         self::assertSame([
-            'https://auth.kneu.edu.ua/api/departments?faculty_id=3&limit=3&offset=10',
-            'https://auth.kneu.edu.ua/api/departments?faculty_id=3&limit=1&offset=12',
+            'https://auth.kneu.edu.ua/api/department?faculty_id=3&limit=3&offset=10',
+            'https://auth.kneu.edu.ua/api/department?faculty_id=3&limit=1&offset=12',
         ], $this->client->urls());
     }
 
@@ -259,16 +259,16 @@ final class ApiTest extends TestCase
      */
     public static function listArguments(): iterable
     {
-        yield 'none' => [[], 'groups'];
-        yield 'limit' => [[5], 'groups?limit=5'];
-        yield 'offset, limit' => [[10, 5], 'groups?limit=5&offset=10'];
-        yield 'filters' => [[['specialty_id' => 33]], 'groups?specialty_id=33'];
-        yield 'filters, limit' => [[['specialty_id' => 33], 5], 'groups?specialty_id=33&limit=5'];
-        yield 'filters, offset, limit' => [[['specialty_id' => 33], 10, 5], 'groups?specialty_id=33&limit=5&offset=10'];
-        yield 'null, limit' => [[null, 5], 'groups?limit=5'];
-        yield 'limit, null' => [[5, null], 'groups?limit=5'];
-        yield 'filters with limit and offset' => [[['limit' => 5, 'offset' => 10, 'faculty_id' => 9]], 'groups?faculty_id=9&limit=5&offset=10'];
-        yield 'arguments win over the filters' => [[['limit' => 5, 'offset' => 10], 1, 2], 'groups?limit=2&offset=1'];
+        yield 'none' => [[], 'group'];
+        yield 'limit' => [[5], 'group?limit=5'];
+        yield 'offset, limit' => [[10, 5], 'group?limit=5&offset=10'];
+        yield 'filters' => [[['specialty_id' => 33]], 'group?specialty_id=33'];
+        yield 'filters, limit' => [[['specialty_id' => 33], 5], 'group?specialty_id=33&limit=5'];
+        yield 'filters, offset, limit' => [[['specialty_id' => 33], 10, 5], 'group?specialty_id=33&limit=5&offset=10'];
+        yield 'null, limit' => [[null, 5], 'group?limit=5'];
+        yield 'limit, null' => [[5, null], 'group?limit=5'];
+        yield 'filters with limit and offset' => [[['limit' => 5, 'offset' => 10, 'faculty_id' => 9]], 'group?faculty_id=9&limit=5&offset=10'];
+        yield 'arguments win over the filters' => [[['limit' => 5, 'offset' => 10], 1, 2], 'group?limit=2&offset=1'];
     }
 
     /**
@@ -298,9 +298,36 @@ final class ApiTest extends TestCase
 
         self::assertCount(4, $students);
         self::assertSame([
-            'https://auth.kneu.edu.ua/api/students?group_id=17867&limit=4&offset=4',
-            'https://auth.kneu.edu.ua/api/students?group_id=17867&limit=2&offset=6',
+            'https://auth.kneu.edu.ua/api/student?group_id=17867&limit=4&offset=4',
+            'https://auth.kneu.edu.ua/api/student?group_id=17867&limit=2&offset=6',
         ], $this->client->urls());
+    }
+
+    /**
+     * The endpoints of the lists are the singular names of the entities, as in 1.x and the API (apiary.apib:
+     * GET /faculty{?offset,limit}); the server answers 404 to /faculties
+     *
+     * @return iterable<string, array{string, string}>
+     */
+    public static function listEndpoints(): iterable
+    {
+        yield 'getFaculties' => ['getFaculties', 'faculty'];
+        yield 'getDepartments' => ['getDepartments', 'department'];
+        yield 'getTeachers' => ['getTeachers', 'teacher'];
+        yield 'getSpecialties' => ['getSpecialties', 'specialty'];
+        yield 'getGroups' => ['getGroups', 'group'];
+        yield 'getStudents' => ['getStudents', 'student'];
+    }
+
+    #[DataProvider('listEndpoints')]
+    public function testTheEndpointOfAList(string $method, string $endpoint): void
+    {
+        $this->client->willReturn(self::json([['id' => 1]]));
+        $api = new Api($this->client, $this->factory, $this->factory);
+
+        iterator_to_array($api->{$method}());
+
+        self::assertSame(['https://auth.kneu.edu.ua/api/' . $endpoint], $this->client->urls());
     }
 
     public function testAZeroLimitRequestsNothing(): void
@@ -348,7 +375,7 @@ final class ApiTest extends TestCase
         $api = new Api($this->client, $this->factory, $this->factory);
 
         $this->expectException(JsonException::class);
-        $this->expectExceptionMessage('Response JSON: expected a list of teachers');
+        $this->expectExceptionMessage('Response JSON: expected a list of teacher');
 
         iterator_to_array($api->getTeachers());
     }
@@ -370,6 +397,129 @@ final class ApiTest extends TestCase
             self::assertSame($networkError, $e->getPrevious());
             self::assertNull($e->getResponse());
         }
+    }
+
+    /**
+     * A client that streams the body after the headers (symfony/http-client's Psr18Client) reports a connection reset
+     * or a timeout while reading it as a warning and a cut body: a network error, not a JsonException of the cut body
+     */
+    public function testABodyCutOffByAWarningIsATransportException(): void
+    {
+        $this->client->willReturn(new Response(200, ['Content-Type' => 'application/json'], self::failingStream(
+            static function (): string {
+                trigger_error('connection reset mid-body', E_USER_WARNING);
+
+                return '{"id":1,';
+            },
+        )));
+        $api = new Api($this->client, $this->factory, $this->factory);
+
+        try {
+            $api->getTeacher(1);
+            self::fail('No exception');
+        } catch (CurlException $e) {
+            self::assertSame('Reading the response failed: connection reset mid-body', $e->getMessage());
+            self::assertInstanceOf(\RuntimeException::class, $e->getPrevious());
+        }
+    }
+
+    public function testABodyStreamThatThrowsIsATransportException(): void
+    {
+        $failure = new \RuntimeException('Idle timeout reached');
+        $this->client->willReturn(new Response(200, [], self::failingStream(static fn(): string => throw $failure)));
+        $api = new Api($this->client, $this->factory, $this->factory);
+
+        try {
+            $api->getTeacher(1);
+            self::fail('No exception');
+        } catch (CurlException $e) {
+            self::assertSame('Idle timeout reached', $e->getMessage());
+            self::assertSame($failure, $e->getPrevious());
+        }
+    }
+
+    /**
+     * A body stream whose getContents() runs $read
+     *
+     * @param \Closure(): string $read
+     */
+    private static function failingStream(\Closure $read): \Psr\Http\Message\StreamInterface
+    {
+        return new class ($read) implements \Psr\Http\Message\StreamInterface {
+            public function __construct(private readonly \Closure $read) {}
+
+            public function __toString(): string
+            {
+                return '';
+            }
+
+            public function close(): void {}
+
+            public function detach()
+            {
+                return null;
+            }
+
+            public function getSize(): ?int
+            {
+                return null;
+            }
+
+            public function tell(): int
+            {
+                return 0;
+            }
+
+            public function eof(): bool
+            {
+                return false;
+            }
+
+            public function isSeekable(): bool
+            {
+                return false;
+            }
+
+            public function seek(int $offset, int $whence = SEEK_SET): void
+            {
+                throw new \RuntimeException('not seekable');
+            }
+
+            public function rewind(): void
+            {
+                throw new \RuntimeException('not seekable');
+            }
+
+            public function isWritable(): bool
+            {
+                return false;
+            }
+
+            public function write(string $string): int
+            {
+                throw new \RuntimeException('not writable');
+            }
+
+            public function isReadable(): bool
+            {
+                return true;
+            }
+
+            public function read(int $length): string
+            {
+                return ($this->read)();
+            }
+
+            public function getContents(): string
+            {
+                return ($this->read)();
+            }
+
+            public function getMetadata(?string $key = null)
+            {
+                return $key === null ? [] : null;
+            }
+        };
     }
 
     public function testAnErrorAnswerIsAnApiExceptionWhateverTheStatus(): void

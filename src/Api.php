@@ -176,7 +176,7 @@ class Api
      */
     public function getFaculties(array|int|null $filtersOrOffsetOrLimit = [], ?int $offsetOrLimit = null, ?int $limit = null): Generator
     {
-        return $this->getList('faculties', $filtersOrOffsetOrLimit, $offsetOrLimit, $limit);
+        return $this->getList('faculty', $filtersOrOffsetOrLimit, $offsetOrLimit, $limit);
     }
 
     /**
@@ -189,7 +189,7 @@ class Api
      */
     public function getDepartments(array|int|null $filtersOrOffsetOrLimit = [], ?int $offsetOrLimit = null, ?int $limit = null): Generator
     {
-        return $this->getList('departments', $filtersOrOffsetOrLimit, $offsetOrLimit, $limit);
+        return $this->getList('department', $filtersOrOffsetOrLimit, $offsetOrLimit, $limit);
     }
 
     /**
@@ -202,7 +202,7 @@ class Api
      */
     public function getTeachers(array|int|null $filtersOrOffsetOrLimit = [], ?int $offsetOrLimit = null, ?int $limit = null): Generator
     {
-        return $this->getList('teachers', $filtersOrOffsetOrLimit, $offsetOrLimit, $limit);
+        return $this->getList('teacher', $filtersOrOffsetOrLimit, $offsetOrLimit, $limit);
     }
 
     /**
@@ -215,7 +215,7 @@ class Api
      */
     public function getSpecialties(array|int|null $filtersOrOffsetOrLimit = [], ?int $offsetOrLimit = null, ?int $limit = null): Generator
     {
-        return $this->getList('specialties', $filtersOrOffsetOrLimit, $offsetOrLimit, $limit);
+        return $this->getList('specialty', $filtersOrOffsetOrLimit, $offsetOrLimit, $limit);
     }
 
     /**
@@ -228,7 +228,7 @@ class Api
      */
     public function getGroups(array|int|null $filtersOrOffsetOrLimit = [], ?int $offsetOrLimit = null, ?int $limit = null): Generator
     {
-        return $this->getList('groups', $filtersOrOffsetOrLimit, $offsetOrLimit, $limit);
+        return $this->getList('group', $filtersOrOffsetOrLimit, $offsetOrLimit, $limit);
     }
 
     /**
@@ -241,7 +241,7 @@ class Api
      */
     public function getStudents(array|int|null $filtersOrOffsetOrLimit = [], ?int $offsetOrLimit = null, ?int $limit = null): Generator
     {
-        return $this->getList('students', $filtersOrOffsetOrLimit, $offsetOrLimit, $limit);
+        return $this->getList('student', $filtersOrOffsetOrLimit, $offsetOrLimit, $limit);
     }
 
     /**
@@ -368,7 +368,7 @@ class Api
      * @param array<string, mixed>|int|null $filtersOrOffsetOrLimit
      * @return Generator<int, Entity, mixed, void>
      */
-    private function getList(string $entities, array|int|null $filtersOrOffsetOrLimit, ?int $offsetOrLimit, ?int $limit): Generator
+    private function getList(string $endpoint, array|int|null $filtersOrOffsetOrLimit, ?int $offsetOrLimit, ?int $limit): Generator
     {
         $filters = is_array($filtersOrOffsetOrLimit) ? $filtersOrOffsetOrLimit : [];
         $numbers = is_array($filtersOrOffsetOrLimit)
@@ -379,7 +379,7 @@ class Api
         $limit = array_pop($numbers);
         $offset = array_pop($numbers);
 
-        return $this->getEntitiesList($entities, $filters, $offset, $limit);
+        return $this->getEntitiesList($endpoint, $filters, $offset, $limit);
     }
 
     /**
@@ -391,7 +391,7 @@ class Api
      * @throws ApiException
      * @throws TransportException
      */
-    private function getEntitiesList(string $entities, array $filters, ?int $offset, ?int $limit): Generator
+    private function getEntitiesList(string $endpoint, array $filters, ?int $offset, ?int $limit): Generator
     {
         if ($limit === null && isset($filters['limit']) && is_numeric($filters['limit'])) {
             $limit = (int) $filters['limit'];
@@ -415,10 +415,10 @@ class Api
                 'offset' => $offset,
             ]);
 
-            $page = $this->request($entities . ($queryString !== '' ? '?' . $queryString : ''));
+            $page = $this->request($endpoint . ($queryString !== '' ? '?' . $queryString : ''));
 
             if (!is_array($page)) {
-                throw new JsonException((string) json_encode($page, JSON_UNESCAPED_UNICODE), 'expected a list of ' . $entities);
+                throw new JsonException((string) json_encode($page, JSON_UNESCAPED_UNICODE), 'expected a list of ' . $endpoint);
             }
 
             if (!$page) { // reach end of list
@@ -427,7 +427,7 @@ class Api
 
             foreach ($page as $entity) {
                 if (!is_array($entity) && !$entity instanceof stdClass) {
-                    throw new JsonException((string) json_encode($page, JSON_UNESCAPED_UNICODE), 'expected a list of ' . $entities);
+                    throw new JsonException((string) json_encode($page, JSON_UNESCAPED_UNICODE), 'expected a list of ' . $endpoint);
                 }
 
                 yield $entity;
@@ -481,6 +481,40 @@ class Api
     }
 
     /**
+     * The body of the answer. A client may stream it after the headers (symfony/http-client's Psr18Client does): a
+     * connection reset or a timeout while it streams surfaces as a warning and a cut body, or as a RuntimeException of
+     * the stream — a network error as well (CurlException), not a JsonException of the cut body.
+     *
+     * @throws CurlException
+     */
+    private function readBody(ResponseInterface $response): string
+    {
+        $failure = null;
+        set_error_handler(static function (int $type, string $message) use (&$failure): bool {
+            $failure ??= $message;
+
+            return true;
+        }, E_WARNING | E_USER_WARNING);
+        try {
+            $stream = $response->getBody();
+            if ($stream->isSeekable()) {
+                $stream->rewind();
+            }
+            $body = $stream->getContents();
+        } catch (\RuntimeException $e) {
+            throw new CurlException($e);
+        } finally {
+            restore_error_handler();
+        }
+
+        if ($failure !== null) {
+            throw new CurlException(new \RuntimeException('Reading the response failed: ' . $failure));
+        }
+
+        return $body;
+    }
+
+    /**
      * Надсилає запит і розбирає відповідь:
      *  - помилка PSR-18 клієнта (мережа, DNS, TLS, таймаут) — CurlException (це TransportException);
      *  - JSON з ключем "error" за будь-якого HTTP-коду — ApiException з error_description або error;
@@ -502,7 +536,7 @@ class Api
         }
 
         $statusCode = $response->getStatusCode();
-        $body = (string) $response->getBody();
+        $body = $this->readBody($response);
 
         $jsonError = null;
         try {

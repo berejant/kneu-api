@@ -7,7 +7,8 @@ namespace Kneu;
 use Psr\Http\Client\ClientExceptionInterface;
 
 /**
- * PSR-18 клієнт не отримав відповіді (мережа, DNS, TLS, таймаут): виняток клієнта — getPrevious().
+ * PSR-18 клієнт не отримав відповіді або її тіла (мережа, DNS, TLS, таймаут): причина — getPrevious() (виняток
+ * клієнта або помилка читання потоку тіла).
  *
  * Назва лишилася від 1.x, де транспортом був curl. Клас збережено, щоб catch (CurlException) у коді 1.x і далі
  * ловив мережеві помилки: PHP не перевіряє класи в catch, тож без нього такі блоки мовчки перестали б спрацьовувати.
@@ -17,7 +18,7 @@ use Psr\Http\Client\ClientExceptionInterface;
  */
 class CurlException extends TransportException
 {
-    public function __construct(ClientExceptionInterface $previous)
+    public function __construct(ClientExceptionInterface|\RuntimeException $previous)
     {
         parent::__construct($previous->getMessage(), (int) $previous->getCode(), $previous);
     }
