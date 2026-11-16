@@ -436,7 +436,11 @@ EXAMPLE;
 require __DIR__ . '/vendor/autoload.php';
 
 $psr17Factory = new Nyholm\Psr7\Factory\Psr17Factory();
-$httpClient = new Symfony\Component\HttpClient\Psr18Client(null, $psr17Factory, $psr17Factory);
+$httpClient = new Symfony\Component\HttpClient\Psr18Client(
+    Symfony\Component\HttpClient\HttpClient::create(['max_duration' => 20]), // таймаут запиту, як в 1.x
+    $psr17Factory,
+    $psr17Factory,
+);
 
 $api = Kneu\Api::createWithOauthToken($httpClient, $psr17Factory, $psr17Factory, __CLIENT_ID__, __CLIENT_SECRET__, filter_input(INPUT_GET, 'code'), $redirect_uri);
 /*
@@ -544,7 +548,11 @@ if('student' == $user->type) {
 require __DIR__ . '/vendor/autoload.php';
 
 $psr17Factory = new Nyholm\Psr7\Factory\Psr17Factory();
-$httpClient = new Symfony\Component\HttpClient\Psr18Client(null, $psr17Factory, $psr17Factory);
+$httpClient = new Symfony\Component\HttpClient\Psr18Client(
+    Symfony\Component\HttpClient\HttpClient::create(['max_duration' => 20]), // таймаут запиту, як в 1.x
+    $psr17Factory,
+    $psr17Factory,
+);
 
 try {
      $api = Kneu\Api::createWithServerToken($httpClient, $psr17Factory, $psr17Factory, __CLIENT_ID__, '__CLIENT_SECRET__');
@@ -593,11 +601,12 @@ try {
 | `Kneu\TransportException` | Абстрактний предок трьох наступних; `getResponse()` — тіло відповіді, якщо вона була |
 | `Kneu\HttpException` | HTTP-код поза 2xx без JSON-помилки; `getStatusCode()` (і `getCode()`) — код, `getResponse()` — тіло |
 | `Kneu\JsonException` | Тіло відповіді 2xx не вдалося розібрати як JSON, або це не об'єкт і не масив |
-| `Kneu\CurlException` | PSR-18 клієнт не отримав відповіді (мережа, DNS, TLS, таймаут); `getPrevious()` — його виняток. **Застарів:** ловіть `TransportException` |
+| `Kneu\CurlException` | PSR-18 клієнт не отримав відповіді або її тіла (мережа, DNS, TLS, таймаут, обрив під час читання тіла); `getPrevious()` — виняток клієнта чи потоку. **Застарів:** ловіть `TransportException` |
 
 ## Оновлення з 1.x до 2.0
 
-Код, який лише викликає методи `$api`, змінювати не треба: методи, їх аргументи, генератори з пагінацією за
+Код, який лише викликає методи `$api` з аргументами потрібних типів, змінювати майже не треба (див. «Типи» нижче):
+методи, їх аргументи, генератори з пагінацією за
 `Content-Range`, `setReturnAssociative()`, `getUser()`, `request()`, `getContentRange()` і класи винятків — ті самі.
 Змінюється створення об'єкта.
 
@@ -628,7 +637,8 @@ $api = new Kneu\Api($httpClient, $psr17Factory, $psr17Factory, $accessToken);
 * **Конструктор і фабрики** приймають PSR-18 клієнт і PSR-17 фабрики запитів і потоків (першими аргументами);
   access_token у конструкторі — необов'язковий четвертий аргумент.
 * **Типи.** Методи `get<Сутності>()` і `get<Сутність>()` — тепер справжні методи замість `__call()` (невідомий метод —
-  `Error`, а не `BadMethodCallException`); `id`, `offset` і `limit` — `int`. `setAccessToken(?string): void`,
+  `Error`, а не `BadMethodCallException`); `id`, `offset` і `limit` — `int`: рядок із цифрами (з БД чи `$_GET`) у файлі
+  з `declare(strict_types=1)` дає `TypeError` — приведіть його `(int)`. `setAccessToken(?string): void`,
   `setReturnAssociative(bool = true): static`.
 * **Винятки:**
   * `CurlException` залишився підкласом `TransportException` і кидається на мережеві помилки PSR-18 клієнта
@@ -642,7 +652,16 @@ $api = new Kneu\Api($httpClient, $psr17Factory, $psr17Factory, $accessToken);
     на запит токена без `access_token` — `ApiException`.
 * **Пагінація:** `limit` і `offset`, передані у фільтрах (`getStudents(['offset' => 100])`), тепер зсуваються від
   сторінки до сторінки, як і передані аргументами (1.x повторював їх у кожному запиті й отримував ту саму сторінку знову).
-* **Заголовки:** запити мають `Accept: application/json`; запит токена не надсилає попередній access_token.
+* **Заголовки:** запити мають `Accept: application/json`; запит токена не надсилає попередній access_token;
+  `User-Agent` — той, що ставить HTTP-клієнт (1.x на curl не надсилав жодного).
+* **Розширення класу.** Колишні `protected` члени (`execRequest()`, `getEntitiesList()`, `getEntity()`,
+  `buildQuery()`, `parseContentRange()`, `$entities`, `$ch`) тепер `private` або зникли, конструктор — `final`:
+  підкласи 1.x, що їх перевизначали, треба переписати (обгорніть `ClientInterface` замість успадкування `Api`).
+* **Конструктори винятків:** `CurlException(ClientExceptionInterface|RuntimeException)` замість `CurlException($ch)`,
+  `HttpException(int $statusCode, ?string $response)`, `JsonException(string $response, …)`;
+  `CurlException::getCode()` — код винятку клієнта, а не `curl_errno()`.
+* **Вкладені запити під час обходу списку** (наприклад `getGroup()` у циклі по `getStudents()`) більше не обривають
+  список після першої сторінки (у 1.x обривали: діапазон сторінки читався зі спільного стану після її елементів).
 * **Адреси** ті самі, що в 1.x: списки — `api/faculty`, `api/department`, `api/teacher`, `api/specialty`, `api/group`,
   `api/student` (однина), сутність — `api/<сутність>/<id>`.
 * **Аргументи перед фільтрами:** `offset` і `limit`, передані аргументами, тепер мають перевагу над `offset`/`limit`

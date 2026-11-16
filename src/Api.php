@@ -416,6 +416,10 @@ class Api
             ]);
 
             $page = $this->request($endpoint . ($queryString !== '' ? '?' . $queryString : ''));
+            // the range of this page, before the caller gets its items: a request the caller makes while it iterates
+            // (getGroup() inside a loop over getStudents()) replaces $this->contentRange, and the list would stop
+            $end = $this->contentRange['end'] ?? null;
+            $total = $this->contentRange['total'] ?? null;
 
             if (!is_array($page)) {
                 throw new JsonException((string) json_encode($page, JSON_UNESCAPED_UNICODE), 'expected a list of ' . $endpoint);
@@ -433,8 +437,6 @@ class Api
                 yield $entity;
             }
 
-            $end = $this->contentRange['end'] ?? null;
-            $total = $this->contentRange['total'] ?? null;
             if ($end === null || $total === null) { // not a page: the whole list
                 break;
             }
@@ -498,7 +500,13 @@ class Api
         try {
             $stream = $response->getBody();
             if ($stream->isSeekable()) {
-                $stream->rewind();
+                try {
+                    if ($stream->tell() !== 0) {
+                        $stream->rewind();
+                    }
+                } catch (\RuntimeException) {
+                    // a body that calls itself seekable but is not (a streamed one): read it from where it is
+                }
             }
             $body = $stream->getContents();
         } catch (\RuntimeException $e) {

@@ -330,6 +330,35 @@ final class ApiTest extends TestCase
         self::assertSame(['https://auth.kneu.edu.ua/api/' . $endpoint], $this->client->urls());
     }
 
+    /**
+     * A request made while the caller iterates a list (an item of another kind inside the loop) does not end the list:
+     * the range of each page is read before its items are given out
+     */
+    public function testARequestInsideTheIterationDoesNotEndTheList(): void
+    {
+        $this->client->willReturn(
+            self::page([['id' => 1], ['id' => 2]], 0, 1, 4),
+            self::json(['id' => 99]),
+            self::page([['id' => 3], ['id' => 4]], 2, 3, 4),
+        );
+        $api = new Api($this->client, $this->factory, $this->factory);
+
+        $ids = [];
+        foreach ($api->getFaculties() as $faculty) {
+            $ids[] = $faculty->id;
+            if ($faculty->id === 1) {
+                $api->getDepartment(99);
+            }
+        }
+
+        self::assertSame([1, 2, 3, 4], $ids);
+        self::assertSame([
+            'https://auth.kneu.edu.ua/api/faculty',
+            'https://auth.kneu.edu.ua/api/department/99',
+            'https://auth.kneu.edu.ua/api/faculty?offset=2',
+        ], $this->client->urls());
+    }
+
     public function testAZeroLimitRequestsNothing(): void
     {
         $api = new Api($this->client, $this->factory, $this->factory);
@@ -438,15 +467,24 @@ final class ApiTest extends TestCase
         }
     }
 
+    /** a streamed body may call itself seekable and fail to rewind: it is read from where it is, not a network error */
+    public function testABodyThatCannotRewindIsReadAsItIs(): void
+    {
+        $this->client->willReturn(new Response(200, [], self::failingStream(static fn(): string => '{"id":1}', seekable: true, position: 3)));
+        $api = new Api($this->client, $this->factory, $this->factory);
+
+        self::assertEquals((object) ['id' => 1], $api->getTeacher(1));
+    }
+
     /**
      * A body stream whose getContents() runs $read
      *
      * @param \Closure(): string $read
      */
-    private static function failingStream(\Closure $read): \Psr\Http\Message\StreamInterface
+    private static function failingStream(\Closure $read, bool $seekable = false, int $position = 0): \Psr\Http\Message\StreamInterface
     {
-        return new class ($read) implements \Psr\Http\Message\StreamInterface {
-            public function __construct(private readonly \Closure $read) {}
+        return new class ($read, $seekable, $position) implements \Psr\Http\Message\StreamInterface {
+            public function __construct(private readonly \Closure $read, private readonly bool $seekable, private readonly int $position) {}
 
             public function __toString(): string
             {
@@ -467,7 +505,7 @@ final class ApiTest extends TestCase
 
             public function tell(): int
             {
-                return 0;
+                return $this->position;
             }
 
             public function eof(): bool
@@ -477,7 +515,7 @@ final class ApiTest extends TestCase
 
             public function isSeekable(): bool
             {
-                return false;
+                return $this->seekable;
             }
 
             public function seek(int $offset, int $whence = SEEK_SET): void
